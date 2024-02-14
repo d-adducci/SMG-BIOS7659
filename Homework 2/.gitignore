@@ -1,5 +1,3 @@
-targets.txt
-Low_4_HG-U133_Plus_2.CEL
 .DS_Store
 High_1_HG-U133_Plus_2.CEL
 High_2_HG-U133_Plus_2.CEL
@@ -8,3 +6,5 @@ High_4_HG-U133_Plus_2.CEL
 Low_1_HG-U133_Plus_2.CEL
 Low_2_HG-U133_Plus_2.CEL
 Low_3_HG-U133_Plus_2.CEL
+Low_4_HG-U133_Plus_2.CEL
+targets.txt
