@@ -263,7 +263,7 @@ sample_size_3d <- samr.assess.samplesize(samr.obj,data = data,dif = 1)
 
 ```
 
-```{r, echo = F, fig.height = 7, fig.width = 7}
+```{r, echo = F, fig.height = 7, fig.width = 7, message = F}
 
 # Plotting the sample size, FDR, and FNR.
 samr.assess.samplesize.plot(sample_size_3d)
