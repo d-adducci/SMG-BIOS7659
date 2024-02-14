@@ -19,13 +19,21 @@ library(samr)
 
 # Question 1
 
-## Part A
+### Part A
 Is it possible to avoid the effects of the experimental factors? 
 
 No, it is not possible to avoid the effects of the experimental factors. Different confounding factors including time-of-day and stress from handling can have an effect on the expression of genes. Additionally, even between mice there can be large variation, and because most experiments are based on single samples from each subject (in this case mice) this variable is often impossible to correct for. 
 
-## Part B
-If not, how should we perform the modeling and interpret the reults in light of these effects?
+### Part B
+If not, how should we perform the modeling and interpret the results in light of these effects?
+
+ANOVA can be used to control for noise which results from confounding factors, but this leads to the question of whether the differentially expressed genes selected by ANOVA are truly the result of experimental factors or confounders. The authors suggested that the one-gene-at-a-time method may not sufficiently capture expression differences, and a more systematic approach which analyzes groups of genes would be better. Interpretation should be done carefully, as differentially expressed genes may be the result of uncontrollable confounders, such as time of day, handling stress, and variability between mice. 
+
+### Part C
+Suppose that the microarray experiments were performed over several batches. What happens if all the samples relevant to any of these factors (variables of interest or the other experimental factors) are entirely contained in on of the experimental batches? How can this be avoided?
+
+In addition to experimental confounders mentioned above there are also effects from running different batches. If all samples relevent to a specific factor are contained in one batch it would be impossible to try and control for the differences between batches. This can be avoided by spreading out these factors between batches, allowing observations into differences. 
+
 
 \newpage
 
@@ -67,6 +75,7 @@ size_cost <- function(power_level){
 }
 
 ```
+
 ```{r, echo = F}
 
 power_vector <- seq(0.80,0.95,by = 0.01) # Vector of different power levels.
@@ -81,10 +90,7 @@ colnames(cost_size_power) <- c("Power","Sample Size","Cost ($)")
 cost_size_power_tbl <- kbl(cost_size_power,
                            caption = "Sample Size and Cost of Power Levels",
                            booktabs = TRUE, align = "lcc") %>%
-  kable_styling(latex_options = "HOLD_position") %>%
-  footnote(general = c("$\\delta$ = 1, $\\sigma$ = 0.5, $\\alpha$ = 0.001",
-           "Type = two-sample t-test, Alternative = two-sided"),escape = FALSE,
-           threeparttable = TRUE)
+  kable_styling(latex_options = "HOLD_position")
 
 cost_size_power_tbl
 
@@ -114,12 +120,12 @@ Because sample size cannot be a fraction there are multiple power levels which o
 
 # Laptop location:"C:/Biostatistics Masters Program/pring 2024/SMG-BIOS7659/Homework 1/arraydata.txt"
 # Desktop location:"C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/arraydata.txt"
-arraydata <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/arraydata.txt",stringsAsFactors = F)
+arraydata <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/arraydata.txt",row.names = 1,header = TRUE)
 
 
 # Laptop location:"C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/sdvalues.txt" 
 # Desktop location:"C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/sdvalues.txt" 
-sdvalues <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/sdvalues.txt",stringsAsFactors = F)
+sdvalues <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/sdvalues.txt")
 
 ```
 
@@ -153,10 +159,7 @@ pa_size_tbl <- kbl(pa_size_df,
                    caption = "Sample size Calculations Using pwr.t.test",
                    col.names = c("Power","Sample Size"),
                    booktabs = TRUE, align = "cc") %>%
-  kable_styling(latex_options = "HOLD_position") %>%
-  footnote(general = c("$\\delta$ = 1, $\\sigma$ = 0.5, $\\alpha$ = 0.001",
-           "Type = two-sample t-test, Alternative = two-sided"),escape = F,
-           threeparttable = TRUE)
+  kable_styling(latex_options = "HOLD_position")
 
 pa_size_tbl
 
@@ -195,10 +198,7 @@ pb_size_tbl <- kbl(pb_size_df,
                    caption = "Sample Size Calculation Using power.t.test.FDR",
                    col.names = c("Power","Sample Size"),
                    booktabs = TRUE, align = "cc") %>%
-  kable_styling(latex_options = "HOLD_position") %>%
-  footnote(general = c("$\\delta$ = 1, $\\sigma$ = 0.5,FDR = 0.05,$\\pi_0$ = 0.80",
-           "Type = two-sample t-test, Alternative = two-sided"),escape = FALSE,
-           threeparttable = TRUE)
+  kable_styling(latex_options = "HOLD_position")
 
 pb_size_tbl
 
@@ -236,12 +236,58 @@ ssize.plot(ssize_vec_upper,xlim = c(1,30),marks = c(5,10,15,20),
 
 ```
 
+When the power increases from 0.80 to 0.95 the proportion of genes needing a sample size $\leq$ n reduces. In other words a higher power test results in a more sensitive test. 
+
 ### Part D
-The attacked file **arraydata.txt** contains the data for each sample. Use **samr.assess.samplesize()** in the **samr** package, which implements the method from journal club (Tibshirani,2006), to examine the sample size based on these data. What plots are displayed with **samr.assess.samplesize.plot()**? What do you conclude from the plots?
+The attached file **arraydata.txt** contains the data for each sample. Use **samr.assess.samplesize()** in the **samr** package, which implements the method from journal club (Tibshirani,2006), to examine the sample size based on these data. What plots are displayed with **samr.assess.samplesize.plot()**? What do you conclude from the plots?
 
+```{r, echo = F, include = F}
 
+## START QUESTION 3 PART D CODE ##
 
+set.seed(303)
 
+# Setting up samr object
+data_matrix <- as.matrix(arraydata)
+
+data = list(x = data_matrix,y = c(rep(1,4),rep(2,4)),
+            geneid = row.names(data_matrix),genenames = row.names(data_matrix),
+            logged2 = TRUE)
+
+samr.obj = samr(data,resp.type = "Two class unpaired",nperms = 500,
+                assay.type = "array")
+
+# using samr.assess.samplesize function to estimate sample size. dif is set
+# to 1. 
+sample_size_3d <- samr.assess.samplesize(samr.obj,data = data,dif = 1)
+
+```
+
+```{r, echo = F, fig.height = 7, fig.width = 7}
+
+# Plotting the sample size, FDR, and FNR.
+samr.assess.samplesize.plot(sample_size_3d)
+
+## FINISH QUESTION 3 PART D CODE ##
+
+### FINISH QUESTION 3 CODE ###
+
+```
+
+There are 4 different plots displayed with different sample sizes illustrated in each plot. The solid red line represents the False Discovery Rate (FDR) and the solid green line represents the False Negative Rate (FNR). The dotted lines represent the 10 and 90th percentiles for the FDR and FNR. From these plots the FNR stays relatively low across all sample sizes, with the 90th percentile extending slightly above 0.05 after reaching 5000 genes. The FDR 90th percentile varies significantly as sample size changes, with increasing sample size reducing the range of the 10 and 90th percentiles. Predictably, larger sample size has better properties. 
+
+### Part E
+Describe the different methods and then compare and contrast the sample size calculations in parts a)-d).
+
+The method in part A is based on the **pwr.t.test** function, which requires specification of the significance level in addition to power, d ($\delta/sd$), and power. This is different from the method in part B, where instead of specifying the significance level the FDR level is specified. Method B results in smaller sample size estimates for the specified power. 
+
+Method C illustrates the effects of power, sample size, and number of genes. The results from method C are relatively close to those in method B. Method D plots the relationship between FDR/FNR versus the number of genes for different sample sizes. This allows the statistician to weigh the effects of increasing sample size on the FDR and FNR depending on the number of genes of interest. 
+
+Each method provides different interpretations, and the best method may depend on the parameters for a specific problem. 
+
+\newpage
+
+# CODE 
 
 ```{r, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
 ```
