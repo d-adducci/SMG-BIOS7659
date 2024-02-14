@@ -1,0 +1,69 @@
+---
+title: "Homework 2 - BIOS 7649"
+author: "Dominic Adducci"
+date: "2024-02-14"
+output: html_document
+---
+
+```{r, echo = F, message = F, include = F}
+
+library(tidyverse)
+library(kableExtra)
+library(affy)
+library(gcrma)
+library(genefilter)
+library(simpleaffy)
+
+```
+
+# Question 1
+
+### Part A
+Read in 8 CEL files in the directory celfiles.
+
+```{r, echo = F}
+
+### START QUESTION 1 CODE ###
+
+## START QUESTION 1 PART A CODE ##
+
+# Reading the 8 CEL files in
+# Desktop Location: 
+# Laptop Location: "C:/Biostatistics Masters Program/Spring 2024/External Data/celfiles/celfiles/targets.txt"
+
+pd <- read.AnnotatedDataFrame("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 2/celfiles/celfiles/targets.txt", header=TRUE, row.names=1,
+                             as.is=TRUE)
+
+# Reading in cell files 
+
+high1 <- ReadAffy(filenames=pData(pd)$`High_1_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+high2 <- ReadAffy(filenames=pData(pd)$`High_2_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+high3 <- ReadAffy(filenames=pData(pd)$`High_3_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+high4 <- ReadAffy(filenames=pData(pd)$`High_4_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+low1 <- ReadAffy(filenames=pData(pd)$`Low_1_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+low2 <- ReadAffy(filenames=pData(pd)$`Low_2_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+low3 <- ReadAffy(filenames=pData(pd)$`Low_3_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+low4 <- ReadAffy(filenames=pData(pd)$`Low_4_HG-U133_Plus_2.CEL`, 
+                  phenoData=pd,sampleNames=sampleNames(pd))
+
+```
+
+
+
+
+
+
