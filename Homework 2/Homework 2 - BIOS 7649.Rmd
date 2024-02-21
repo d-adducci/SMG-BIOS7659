@@ -2,7 +2,9 @@
 title: "Homework 2 - BIOS 7649"
 author: "Dominic Adducci"
 date: "2024-02-14"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r, echo = F, message = F, include = F}
@@ -41,12 +43,353 @@ Data <- ReadAffy(filenames=pData(pd)$FileName,
 
 ```
 
-```{r}
+Extracting data using the exprs() function. 
+
+```{r, echo = F}
 
 head(exprs(Data))
 
 ```
+Extracting data using the sampleNames() function:
 
+```{r, echo = F}
+
+head(sampleNames(Data))
+
+```
+
+Extracting data using the probeNames() function:
+
+```{r, echo = F, warning = F}
+
+head(probeNames(Data))
+
+```
+
+Extracting data using mm() function:
+
+```{r, echo = F}
+
+head(mm(Data))
+
+```
+
+Extracting data using pm() function:
+
+```{r, echo = F}
+
+head(pm(Data))
+
+```
+
+Extracting data using pData() function:
+
+```{r, echo = F}
+
+head(pData(Data))
+
+## FINISH QUESTION 1 PART A CODE ##
+
+```
+
+### Part B
+Plot the raw microarray images using **image()** on the object **Data**. Comment on what you see in these plots. 
+
+```{r, echo = F, fig.height = 3, fig.width = 3, eval = F, include = F}
+
+image(Data)
+
+```
+
+All plots look relatively similar with the exception of low 1, which has some light spots, and low 4, which appears to had something on the plate, and was not read correctly. 
+
+### Part C
+Plot quality control metrics using **qc.affy()** and **plot.qc.stats()** fom the **simpleaffy** package. Comment on what you see in the plot. A description of **simpleaffy** is in Wilson & Miller (2005).
+
+```{r, echo = F, warning = F}
+
+## START QUESTION 1 PART C CODE ##
+
+quality_data <- qc.affy(Data)
+
+plot.qc.stats(quality_data)
+
+## FINISH QUESTION 1 PART C CODE ##
+
+```
+
+All scale factors are within 3 folds of each other. Because the ends of all lines are within the blue region the scale-factors are compatible. Additionally, each line being colored blue indicates that these are OK. 
+
+## Part D
+Plot he mean intensity from 3' to 5' end of the target mRNA using **AffyRNAdeg()** and **plotAffyRNAdeg()**. Comment on what you see in the plot. 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART D CODE ##
+
+rna_deg <- AffyRNAdeg(Data)
+
+plotAffyRNAdeg(rna_deg, cols = c(rep("red",4), rep("blue",4)))
+legend(-1, 39, sampleNames(Data),
+       lty = 1, col = c(rep("red",4), rep("blue",4)),lwd = 2)
+
+```
+
+The mean intensity moving towards the 3' end is higher for the 'Low' plates compared to the 'High' plates. This pattern is consistant across all plates. 
+
+### Part E
+ Use **boxplot()** and **plotDensity.AffyBatch()** to examine the distribution of intensity values for the perfect-match and mis-match probes separately. What patterns do you see? (Make sure you are plotting the **log** transformed data). 
+ 
+```{r, echo = F}
+
+boxplot(log(pm(Data)))
+title("Perfect-Match")
+
+boxplot(log(mm(Data)))
+title("Mis-Match")
+
+```
+
+The means are similar between the perfect-match and mis-match probes, while the variance is greater for the perfect-match probes. For the mis-match probes, chip "Low4" has a noticeable outlier far below the mean. 
+
+```{r,echo = F}
+
+plotDensity.AffyBatch(Data,which = "pm",
+                      col = c("red","blue","green","black",
+                                   "orange","purple","brown","cyan3"),
+                      lty = 1, lwd = 1.5)
+title("Perfect-Match")
+legend(13,0.6,sampleNames(Data),col = c("red","blue","green","black",
+                                        "orange","purple","brown","cyan3"),
+       lty = 1, lwd = 4)
+
+plotDensity.AffyBatch(Data,which = "mm",
+                      col = c("red","blue","green","black",
+                              "orange","purple","brown","cyan3"),
+                      lty = 1, lwd = 1.5)
+title("Mis-Match")
+legend(13,0.8,sampleNames(Data),col = c("red","blue","green","black",
+                                        "orange","purple","brown","cyan3"),
+       lty = 1, lwd = 4)
+
+```
+
+The mis-match probes have a higher peak in density compared to the perfect-match probes, although both have similar shapes. Chip "Low4" has noticeable secondary peaks on both the left and right hand side of the main peak. 
+
+
+### Part F
+Based on the summaries and figures you generated, would you recommend that one or more chips be remove from the analysis? 
+
+Chip "Low4" should be removed, as there are noticeable abberations in the density plots. 
+
+
+\newpage
+
+# Question 2
+
+### Part A
+Create log transformed data and plot the density before and after log transforming using **plotDensity.AffyBatch**. Comment on these plots. 
+
+```{r, echo = F}
+
+### START QUESTION 2 CODE ###
+
+## START QUESTION 2 PART A CODE ##
+
+plotDensity.AffyBatch(Data, which = "both", log = FALSE,
+                      col = c("red","blue","green","black",
+                              "orange","purple","brown","cyan3"),
+                      lty = 1, lwd = 1.5)
+title("Non-Logged")
+legend(3000,0.04, sampleNames(Data),col = c("red","blue","green","black",
+                                         "orange","purple","brown","cyan3"),
+       lty = 1, lwd = 4)
+
+```
+
+Before log transforming the intensity values on the x-axis are much higher, and the lines have an exponential decay pattern, asymptotically approaching 0. 
+
+```{r, echo = F}
+
+plotDensity.AffyBatch(Data, which = "both", log = TRUE,
+                      col = c("red","blue","green","black",
+                              "orange","purple","brown","cyan3"),
+                      lty = 1, lwd = 1.5)
+title("Logged")
+legend(13,0.8,sampleNames(Data),col = c("red","blue","green","black",
+                                        "orange","purple","brown","cyan3"),
+       lty = 1, lwd = 4)
+
+```
+
+After log transforming the data the intensity scale is reduced, and the shapes are peaked. Additionally, this plot is far easier to read and interpret what is going on between chips. 
+
+### Part B
+Plot MA plots using **MAplot()** and summarize your observations. 
+
+```{r, echo = F, fig.height = 3,include = F, eval = F}
+
+MAplot(Data, show.statistics = F)
+
+```
+
+All chips have point clouds that are centered around 0 with the exception of chip "High1" and chp "Low4". Chip "High1" has the center slightly above 0, while chip "Low4" has two downward clouds in addition to the cloud centered around 0. 
+
+### Part C
+Use **expresso()** to try different **normalized.method** options, while keeping other arguments static. Make boxplots of un-normalized and normalized intensities. Try different **summary.method** options and **pmcorrect.method** options. 
+
+```{r, echo = F, include = F}
+
+## START QUESTION 2 PART C CODE ##
+
+# Trying different normalization methods. 
+norm_quantile <- expresso(Data,bgcorrect.method = "rma",
+                          pmcorrect.method = "pmonly", 
+                          summary.method = "avgdiff",
+                          normalize.method = "quantiles",
+                          verbose = FALSE)
+
+norm_loess <- expresso(Data,bgcorrect.method = "rma",
+                       pmcorrect.method = "pmonly",
+                       summary.method = "avgdiff",
+                       normalize.method = "loess",
+                       verbose = FALSE)
+
+norm_const <- expresso(Data,bgcorrect.method = "rma",
+                       pmcorrect.method = "pmonly",
+                       summary.method = "avgdiff",
+                       normalize.method = "constant",
+                       verbose = FALSE)
+
+
+```
+
+```{r, echo = F, fig.height = 3}
+
+# Making boxplots of different normalizaton methods.
+boxplot(Data)
+title("Un-normalized")
+
+boxplot(log(exprs(norm_quantile)))
+title("Normalized: Quantile - Logged")
+
+boxplot(log(exprs(norm_loess)))
+title("Normalized: Loess - Logged")
+
+boxplot(log(exprs(norm_const)))
+title("Normalized: Constant - Logged")
+
+```
+
+The un-normalized data set was plotted without being logged, all the normalized data sets were plotted after being logged. The means were the same between all of the normalized methods. The Loess method had the smallest variance, while the constant method tended to have the highest variance. All pmcorrect.methods were set to "pmonly", all summary.methods were set to "avgdiff", and bgcorrect.methods were set to "rma". 
+
+```{r, echo = F, include = F}
+
+# Trying different summary methods. 
+sum_avgdiff <- expresso(Data,bgcorrect.method = "rma",
+                        pmcorrect.method = "pmonly",
+                        summary.method = "avgdiff",
+                        normalize.method = "quantiles",
+                        verbose = FALSE)
+
+sum_mas <- expresso(Data,bgcorrect.method = "rma",
+                    pmcorrect.method = "pmonly",
+                    summary.method = "mas",
+                    normalize.method = "quantiles",
+                    verbose = FALSE)
+
+sum_median <- expresso(Data,bgcorrect.method = "rma",
+                       pmcorrect.method = "pmonly",
+                       summary.method = "medianpolish",
+                       normalize.method = "quantiles",
+                       verbose = FALSE)
+
+```
+
+
+```{r,echo = F, fit.width = 3, fig.height = 3}
+
+# Making boxplots of different summary methods.
+boxplot(log(exprs(sum_avgdiff)))
+title("Summary: avgdiff - Logged")
+
+boxplot(log(exprs(sum_mas)))
+title("Summary: mas - Logged")
+
+boxplot(log(exprs(sum_median)))
+title("Summary: medianpolish - Logged")
+
+```
+
+Each summary method was logged before plotting. The avgdiff method and the mas methods performed very similarly, with the avgdiff method having slightly higher variance on a few chips. The medianpolish method had much less variance and the means were consistent across chips. The variances were also very similar across chpis. All pmcorrect.methods were set to "pmonly", all normalize.methods were set to "quantiles", and bgcorrect.methods were set to "rma". 
+
+```{r, echo = F, include = F}
+
+# Trying different pmcorrect.method options
+
+pmcorrect_pmonly <- expresso(Data,bgcorrect.method = "rma",
+                             pmcorrect.method = "pmonly",
+                             summary.method = "avgdiff",
+                             normalize.method = "quantiles",
+                             verbose = F)
+
+pmcorrect_mas <- expresso(Data,bgcorrect.method = "rma",
+                          pmcorrect.method = "mas",
+                          summary.method = "avgdiff",
+                          normalize.method = "quantiles",
+                          verbose = F)
+
+pmcorrect_sub <- expresso(Data,bgcorrect.method = "rma",
+                          pmcorrect.method = "subtractmm",
+                          summary.method = "avgdiff",
+                          normalize.method = "quantiles",
+                          verbose = F)
+
+
+```
+
+```{r, echo = F, fig.height = 3, warning = F}
+
+boxplot(log(exprs(pmcorrect_pmonly)))
+title("pmcorrect: pmonly - Logged")
+
+boxplot(log(exprs(pmcorrect_mas)))
+title("pmcorrect: mas - Logged")
+
+boxplot(log(exprs(pmcorrect_sub)))
+title("pmcorrect: subtractumm - Logged")
+
+## FINISH QUESTION 2 PART C CODE ##
+
+```
+
+All different pmcorrect.methods were logged before plotting. The pmonly method had the lowest variance, although there are more points that extend beyond the boxplot whiskers. The mas method had higher variance, but there were not points extending beyond the boxplot whiskers. The subtractumm method had a higher average than either of the other two methods, and had points extending noticeably below the mean.  All summary.methods were set to "avgdiff", all normalize.methods were set to "quantiles", and bgcorrect.methods were set to "rma".
+
+### Part D
+Get presentand absent calls Mas 5.0 using **mas5calls()**. How many probesets have at least one present call in each of the two groups? Use this as your filter for part e). 
+
+```{r, echo  = F}
+
+pres_abs <- mas5calls(Data)
+
+present <- function(x){
+  rowSums(x == "P") > 0
+}
+
+present_abs_results <- length(present(exprs(pres_abs)))
+
+present_abs_results
+
+```
+
+54,675 probesets had at least one P. 
+
+\newpage
+
+# CODE 
+
+```{r, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
 
 
 
