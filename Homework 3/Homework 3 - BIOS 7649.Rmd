@@ -165,10 +165,101 @@ ttest_tbl
 
 ```
 
-```{r}
+### Part C: Alternative 't-statistics'
 
-fold_ttest(5,array_genes)
+### Part C.i
+Calculate the modified 't-statistic' and corresponding p-value using the **samr** package in R used in Homework 2. How many genes are significant at the 0.01 level? List the top 10 genes that have the largest 'penalized' t-statistics. 
+
+```{r, echo = F, include = F}
+
+## START QUESTION 1 PART C.i CODE ##
+
+# Setting up list for the samr object. The data was already logged2 
+# transformed, which is noted in the list. 
+samr_list <- list(x = as.matrix(array_data),y = c(rep(1,8),rep(2,8)), 
+                  geneid = genenames_data[,1], genenames = genenames_data[,1],
+                  logged2 = TRUE)
+
+# Setting up samr object. Assay type is array. testStatistic appears
+# defaulted to "standard". 
+samr.obj <- samr(samr_list,resp.type = "Two class unpaired", nperms = 500,
+                 assay.type = "array")
+
+delta.table <- samr.compute.delta.table(samr.obj)
+
+# Computing significant genes table. all genes selected in order to then 
+# select out the top 10. 
+samr_test <- samr.compute.siggenes.table(samr.obj,del = 1,all.genes = TRUE, 
+                                         data = samr_list,
+                                         delta.table)
+
+# Extracting information from the above variable. 
+genes_low_samr <- as.data.frame((samr_test$genes.lo)[c(1:10),
+                                                    c("Gene ID","Score(d)")])%>%
+  mutate(`Score(d)` = as.numeric(`Score(d)`))
+
+
+samr_test_tbl <- kbl(as.data.frame(genes_low_samr),
+                     col.names = c("Gene Name","Score (Modified t-statistic"),
+                     booktabs = T, align = "lc", digits = 3) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+samr_test_tbl
 
 ```
+
+
+### Part C.ii
+Calculate the 'moderated' t-statistic and corresponding p-value using the **limma** package from BioConductor. How many genes are significant at the 0.01 level? List the top 10 genes that have the largest 'penalized' t-statistics. 
+
+The 'moderated' t-statistic is 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART C.ii CODE ##
+
+# Code based on page 42 of limma user guide. 
+
+# Setting up design matrix for control (c) and experimental (k) groups. 
+design_mat <- cbind(Con = c(1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0),
+                    Exp = c(0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1))
+
+# Setting up contrast 
+limma_fit <- lmFit(object = array_data, design = design_mat)
+cont.mat <- makeContrasts(ExpvsCon = Exp - Con, levels = design_mat)
+limma_fit2 <- eBayes(contrasts.fit(limma_fit,cont.mat))
+
+# Extracting top 10 results. 
+limma_results <- topTable(limma_fit2)
+
+# Using row number to extract gene name for top 10 results. 
+limma_genes <- genenames_data[rownames(limma_results),]
+
+limma_table_df <- cbind(limma_genes,limma_results[,c(3,4,5)]) %>%
+  mutate(P.Value = format.pval(P.Value,digits = 3),
+         adj.P.Val = format.pval(adj.P.Val,digits = 3))
+
+row.names(limma_table_df) <- NULL
+
+limma_table <- kbl(limma_table_df,
+                   caption = "10 Largest modified t-statistics - Limma",
+                   col.names = c("Gene Name","Modified t-statistic",
+                                 "p-value","Adj. p-value (BH)"),
+                   booktabs = TRUE, align = "lccc",digits = 3) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+limma_table
+
+```
+
+### Part D
+Compare and contrast the results for the four methods for ranking genes. Explain the difference in how the different t-statistics are calculated. 
+
+
+
+
+
+
+
 
 
