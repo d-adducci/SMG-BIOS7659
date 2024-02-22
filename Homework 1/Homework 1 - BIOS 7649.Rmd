@@ -118,9 +118,9 @@ Because sample size cannot be a fraction there are multiple power levels which o
 
 # Loading in data for question 3. 
 
-# Laptop location:"C:/Biostatistics Masters Program/pring 2024/SMG-BIOS7659/Homework 1/arraydata.txt"
+# Laptop location:"C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/arraydata.txt"
 # Desktop location:"C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/arraydata.txt"
-arraydata <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/arraydata.txt",row.names = 1,header = TRUE)
+arraydata <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/arraydata.txt",row.names = 1,header = TRUE)
 
 
 # Laptop location:"C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 1/sdvalues.txt" 
