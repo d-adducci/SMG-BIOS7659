@@ -1,0 +1,174 @@
+---
+title: "Homework 3 - BIOS 7649"
+author: "Dominic Adducci"
+output: pdf_document
+---
+
+```{r, echo = F, warning = F}
+
+library(tidyverse)
+library(impute)
+library(limma)
+library(samr)
+library(kableExtra)
+
+```
+
+# Question 1: T-statistics
+
+```{r, echo = F}
+
+### START QUESTION 1 CODE ###
+
+# Laptop Location:
+# Desktop: 
+# Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
+array_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
+                         blank.lines.skip = FALSE)
+
+
+# Data Location:
+#Desktop: 
+#Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
+genenames_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
+
+colnames(genenames_data) <- "gene_name"
+
+# Combining gene names with array data. 
+array_genes <- cbind(genenames_data,array_data)
+
+```
+
+### Part A 
+For each gene, calculate the fold change between the knock-out and wildtype groups. List the top 10 genes that show the largest fold change (positive or negative). 
+
+There are 8 mice in the control group (C57B1/6 strain) and 8 mice in the experimental group (apo AI knockout). In order to calculate the fold change, either positive or negative between the two groups, the averages for each group needs to be calculated for each gene. 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART A CODE ##
+
+# Making a function which averages the subjects in each group and 
+# finds the difference. 
+fold_change <- function(index,data_frame){
+  # index: refers to the index which is currently being assessed
+  # in the data frame. 
+  # data_frame: The data frame with genes names and measurements. 
+  
+  # Extracting current row. 
+  current_row <- data_frame[index,]
+  
+  control <- sum(current_row[,grepl("c",names(current_row))])/8
+  experimental <- sum(current_row[,grepl("k",names(current_row))])/8
+  gene_name <- current_row[,grepl("gene_name",names(current_row))]
+  
+  # Difference calculated by subtracting control group from experimental
+  # group, e.g., positive values indicate experimental group is has 
+  # higher expression, negative values indicate control group has 
+  # higher expression. 
+  difference <- experimental - control
+  
+  result <- c(gene_name,difference)
+  
+  return(result)
+    
+}
+
+```
+
+```{r, echo = F}
+
+# Applying function to entire data frame. 
+difference_result <- sapply(seq(1,nrow(array_genes),by = 1), 
+                               function(x) fold_change(x,array_genes)) %>%
+  t() %>% as.data.frame()
+
+colnames(difference_result) <- c("gene_name","difference")
+
+# Ordering data frame by absolute difference. 
+diff_order <- difference_result %>% arrange(desc(abs(as.numeric(difference))))
+
+diff_order_table <- kbl(head(diff_order,10),
+                        col.names = c("Gene Name","Difference"),
+                        caption = "10 Largest Absolute Fold Changes",
+                        booktabs = TRUE, align = "lc") %>%
+  kable_styling(latex_options = "HOLD_position")
+
+diff_order_table
+
+## FINISH QUESTION 1 PART A CODE ##
+
+```
+
+Table 1 illustrates the largest absolute difference in fold change. The difference was found by subtracting the averaged expression of the control group from the averaged expression of the experimental group. This means that positive values indicate increased expression in the experimental group, and negative valuees indicate increased expression in the control group. 
+
+### Part B
+Obtain the p-values from a two sided t-test for differential expression. How many genes are significant at the 0.01 level? List the top 10 genes that have the largest t-statistic and their corresponding p-value. 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART B CODE ##
+
+# Making a function that performs a t-test between the experimental and 
+# control group for each gene. 
+fold_ttest <- function(index,data_frame){
+  # index: refers to the index which is currently being assessed
+  # in the data frame. 
+  # data_frame: The data frame with genes names and measurements.
+  
+  # Extracting current row.
+  current_row <- data_frame[index,]
+  
+  control <- current_row[,grepl("c",names(current_row))]
+  experimental <- current_row[,grepl("k",names(current_row))]
+  gene_name <- current_row[,grepl("gene_name",names(current_row))]
+  
+  # Running t-test on the experimental and control group.
+  ttest_result <- t.test(experimental,control,alternative = "two.sided")
+  
+  # Extracting relevant information from t-test. 
+  statistic_value <- ttest_result$statistic
+  p_value <- ttest_result$p.value
+  
+  result <- c(gene_name,statistic_value,p_value)
+  
+  return(result)
+  
+}
+
+```
+
+```{r, echo = F}
+
+# Applying function to entire data frame. 
+ttest_result <- sapply(seq(1,nrow(array_genes),by = 1),
+                       function(x) fold_ttest(x,array_genes)) %>%
+  t() %>% as.data.frame()
+
+
+colnames(ttest_result) <- c("gene_name","t_statistic","p_value")
+
+# Ordering result by t-statistic. 
+ttest_order <- ttest_result %>% arrange(desc(as.numeric(t_statistic))) %>%
+  mutate(t_statistic = as.numeric(t_statistic),
+         p_value = as.numeric(p_value),
+         p_value = format.pval(p_value,digits = 3)) %>%
+  mutate_if(is.numeric,round,digits = 3)
+
+ttest_tbl <- kbl(head(ttest_order,10),
+                 col.names = c("Gene Name","t-statistic","p-value"),
+                 caption = "10 Largest t-statistics",
+                 booktabs = TRUE, align = "lc") %>%
+  kable_styling(latex_options = "HOLD_position")
+
+ttest_tbl
+
+```
+
+```{r}
+
+fold_ttest(5,array_genes)
+
+```
+
+
