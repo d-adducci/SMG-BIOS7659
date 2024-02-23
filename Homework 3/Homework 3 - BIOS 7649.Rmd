@@ -21,16 +21,16 @@ library(kableExtra)
 ### START QUESTION 1 CODE ###
 
 # Laptop Location:
-# Desktop: 
+# Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
 # Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
-array_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
+array_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
                          blank.lines.skip = FALSE)
 
 
 # Data Location:
-#Desktop: 
+#Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
 #Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
-genenames_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
+genenames_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
 
 colnames(genenames_data) <- "gene_name"
 
@@ -193,21 +193,30 @@ samr_test <- samr.compute.siggenes.table(samr.obj,del = 1,all.genes = TRUE,
                                          data = samr_list,
                                          delta.table)
 
-# Extracting information from the above variable. 
-genes_low_samr <- as.data.frame((samr_test$genes.lo)[c(1:10),
+# Extracting information from the above variable to put in a table. 
+genes_low_samr <- as.data.frame((samr_test$genes.lo)[,
                                                     c("Gene ID","Score(d)")])%>%
   mutate(`Score(d)` = as.numeric(`Score(d)`))
 
 
-samr_test_tbl <- kbl(as.data.frame(genes_low_samr),
-                     col.names = c("Gene Name","Score (Modified t-statistic"),
+samr_test_tbl <- kbl(genes_low_samr[c(1:10),],
+                     col.names = c("Gene Name","Score (Modified t-statistic)"),
                      booktabs = T, align = "lc", digits = 3) %>%
   kable_styling(latex_options = "HOLD_position")
+
+# Determining how many genes are significant at the 0.01 level. 
+genes_samr_sig <- genes_low_samr %>% filter(`Score(d)` <= 0.10)
+
+
+```
+
+```{r}
 
 samr_test_tbl
 
 ```
 
+Table 3 shows the results for 
 
 ### Part C.ii
 Calculate the 'moderated' t-statistic and corresponding p-value using the **limma** package from BioConductor. How many genes are significant at the 0.01 level? List the top 10 genes that have the largest 'penalized' t-statistics. 
