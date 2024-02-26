@@ -4,13 +4,15 @@ author: "Dominic Adducci"
 output: pdf_document
 ---
 
-```{r, echo = F, warning = F}
+```{r, echo = F, warning = F, include = F}
 
 library(tidyverse)
 library(impute)
 library(limma)
 library(samr)
 library(kableExtra)
+library(qvalue)
+library(gtools)
 
 ```
 
@@ -23,14 +25,14 @@ library(kableExtra)
 # Laptop Location:
 # Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
 # Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
-array_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
+array_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
                          blank.lines.skip = FALSE)
 
 
 # Data Location:
 #Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
 #Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
-genenames_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
+genenames_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
 
 colnames(genenames_data) <- "gene_name"
 
@@ -51,7 +53,7 @@ There are 8 mice in the control group (C57B1/6 strain) and 8 mice in the experim
 # Making a function which averages the subjects in each group and 
 # finds the difference. 
 fold_change <- function(index,data_frame){
-  # index: refers to the index which is currently being assessed
+  # index: Refers to the index which is currently being assessed
   # in the data frame. 
   # data_frame: The data frame with genes names and measurements. 
   
@@ -112,7 +114,7 @@ Obtain the p-values from a two sided t-test for differential expression. How man
 # Making a function that performs a t-test between the experimental and 
 # control group for each gene. 
 fold_ttest <- function(index,data_frame){
-  # index: refers to the index which is currently being assessed
+  # index: Refers to the index which is currently being assessed
   # in the data frame. 
   # data_frame: The data frame with genes names and measurements.
   
@@ -124,7 +126,7 @@ fold_ttest <- function(index,data_frame){
   gene_name <- current_row[,grepl("gene_name",names(current_row))]
   
   # Running t-test on the experimental and control group.
-  ttest_result <- t.test(experimental,control,alternative = "two.sided")
+  ttest_result <- t.test(control,experimental,alternative = "two.sided")
   
   # Extracting relevant information from t-test. 
   statistic_value <- ttest_result$statistic
@@ -162,6 +164,8 @@ ttest_tbl <- kbl(head(ttest_order,10),
   kable_styling(latex_options = "HOLD_position")
 
 ttest_tbl
+
+## FINISH QUESTION 1 PART B CODE ##
 
 ```
 
@@ -214,6 +218,8 @@ genes_samr_sig <- genes_low_samr %>% filter(`Score(d)` <= 0.10)
 
 samr_test_tbl
 
+## FINISH QUESTION 1 PART C.i CODE ##
+
 ```
 
 Table 3 shows the results for 
@@ -259,12 +265,81 @@ limma_table <- kbl(limma_table_df,
 
 limma_table
 
+## FINISH QUESTION 1 PART C.ii CODE ##
+
+### FINISH QUESTION 1 CODE ###
+
 ```
 
 ### Part D
 Compare and contrast the results for the four methods for ranking genes. Explain the difference in how the different t-statistics are calculated. 
 
 
+
+\newpage
+
+# Question 2: P-values and Multiple Testing
+
+### Part A
+Calculate p-values for the t-statistics using permutations (B = 12870 possibilities). How many genes are significant at the 0.01 level? 
+
+```{r, echo = F}
+
+### START QUESTION 2 CODE ###
+
+## START QUESTION 2 PART A CODE ##
+
+permutation_test <- function(index,gene_data,ttest_results){
+  # index: Refers to the index which is currently being assessed
+  # in the data frame. 
+  # gene_data: The data frame with genes names and measurements.
+  # ttest_results: The data frame that holds the results of the t-test from
+  # part 1B.
+  
+  # Extracting current row from data frame. 
+  current_row <- data_frame[index,]
+  
+  # Extracting gene name.
+  gene_name <- current_row[,"gene_name"]
+  
+  # Creating possible combinations
+  current_comb <- combinations(16,8,unlist(current_row[,c(2:17)]))
+  
+  # Selecting out the initial t-value.
+  t_value <- ttest_results[i,"t_statistic"]
+  
+  # Initializing a count to keep track of number of t_star values > t_value.
+  count = 0
+  
+  for(i in 1:nrow(current_comb)){
+    control <- current_comb
+    experimental <- current_row %>% select(-control)
+    t_star <- t.test(control,experimental,alternative = "two.sided")
+    if(abs(t_star) > abs(t_value)){
+      count = count + 1
+    else count = count 
+    }
+  }
+  
+  permutation_p <- count/nrow(current_comb)
+  
+  result <- c(gene_name,permutation_p)
+  
+  return(result)
+}
+
+
+
+```
+
+```{r, echo = F}
+
+# Test Code
+hedenfalk$stat
+hedenfalk$p
+
+
+```
 
 
 
