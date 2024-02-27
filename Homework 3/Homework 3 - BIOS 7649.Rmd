@@ -26,14 +26,14 @@ library(pbapply)
 # Laptop Location:
 # Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
 # Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
-array_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
+array_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
                          blank.lines.skip = FALSE)
 
 
 # Data Location:
 #Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
 #Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
-genenames_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
+genenames_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
 
 colnames(genenames_data) <- "gene_name"
 
@@ -336,7 +336,6 @@ permutation_test <- function(index,gene_data,ttest_statistic){
 
 ```{r, echo = F, eval = F}
 
-
 # Testing permutation function
 
 perm_test <- pbsapply(seq(1,nrow(array_genes),by = 1),
@@ -345,6 +344,26 @@ perm_test <- pbsapply(seq(1,nrow(array_genes),by = 1),
 
 # Saving results of the permutation to an RDS file. 
 #saveRDS(perm_test,"C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds")
+
+```
+
+```{r, echo = F}
+
+# Data Location:
+# Desktop:
+# Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds"
+
+# Loading in previously run permutation data. 
+permutation_results <- readRDS("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds") %>% t() %>%
+  as.data.frame %>% mutate(V2 = as.numeric(V2))
+
+colnames(permutation_results) <- c("gene_name","p_value")
+
+```
+
+```{r, echo = F}
+
+permutation_sig <- nrow(permutation_results %>% filter(p_value <= 0.01))
 
 ```
 
