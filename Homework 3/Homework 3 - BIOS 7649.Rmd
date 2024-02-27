@@ -13,6 +13,7 @@ library(samr)
 library(kableExtra)
 library(qvalue)
 library(gtools)
+library(pbapply)
 
 ```
 
@@ -25,14 +26,14 @@ library(gtools)
 # Laptop Location:
 # Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
 # Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
-array_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
+array_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
                          blank.lines.skip = FALSE)
 
 
 # Data Location:
 #Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
 #Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
-genenames_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
+genenames_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
 
 colnames(genenames_data) <- "gene_name"
 
@@ -289,15 +290,15 @@ Calculate p-values for the t-statistics using permutations (B = 12870 possibilit
 
 ## START QUESTION 2 PART A CODE ##
 
-permutation_test <- function(index,gene_data,ttest_results){
+permutation_test <- function(index,gene_data,ttest_statistic){
   # index: Refers to the index which is currently being assessed
   # in the data frame. 
   # gene_data: The data frame with genes names and measurements.
-  # ttest_results: The data frame that holds the results of the t-test from
+  # ttest_statistic: The data frame that holds the results of the t-test from
   # part 1B.
   
   # Extracting current row from data frame. 
-  current_row <- data_frame[index,]
+  current_row <- gene_data[index,]
   
   # Extracting gene name.
   gene_name <- current_row[,"gene_name"]
@@ -306,19 +307,20 @@ permutation_test <- function(index,gene_data,ttest_results){
   current_comb <- combinations(16,8,unlist(current_row[,c(2:17)]))
   
   # Selecting out the initial t-value.
-  t_value <- ttest_results[i,"t_statistic"]
+  t_value <- as.numeric(ttest_statistic[index,"t_statistic"])
   
   # Initializing a count to keep track of number of t_star values > t_value.
-  count = 0
+  count <- 0
   
   for(i in 1:nrow(current_comb)){
-    control <- current_comb
-    experimental <- current_row %>% select(-control)
-    t_star <- t.test(control,experimental,alternative = "two.sided")
+    control <- current_comb[i,]
+    experimental <- setdiff(as.numeric(current_row),control)
+    t_test_perm <- t.test(control,experimental,alternative = "two.sided")
+    t_star <- as.numeric(t_test_perm$statistic)
     if(abs(t_star) > abs(t_value)){
       count = count + 1
-    else count = count 
     }
+    else count = count 
   }
   
   permutation_p <- count/nrow(current_comb)
@@ -334,10 +336,28 @@ permutation_test <- function(index,gene_data,ttest_results){
 
 ```{r, echo = F}
 
-# Test Code
-hedenfalk$stat
-hedenfalk$p
 
+# Testing permutation function
+
+perm_test <- pbsapply(seq(1,5,by = 1),
+                             function(x) permutation_test(x,array_genes,
+                                                          ttest_result))
+
+permutation_test(1,array_genes,ttest_result)
+```
+
+```{r}
+
+test_matrix <- combinations(16,8,unlist(array_genes[1,c(2:17)]))
+
+test_subset <- test_matrix[1,]
+
+test_row <- as.numeric(array_genes[1,c(2:17)])
+
+select_test <- setdiff(test_row,test_subset)
+
+select_test
+test_subset
 
 ```
 
