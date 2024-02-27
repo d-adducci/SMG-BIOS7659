@@ -314,7 +314,7 @@ permutation_test <- function(index,gene_data,ttest_statistic){
   
   for(i in 1:nrow(current_comb)){
     control <- current_comb[i,]
-    experimental <- setdiff(as.numeric(current_row),control)
+    experimental <- setdiff(as.numeric(current_row[,c(2:17)]),control)
     t_test_perm <- t.test(control,experimental,alternative = "two.sided")
     t_star <- as.numeric(t_test_perm$statistic)
     if(abs(t_star) > abs(t_value)){
@@ -334,16 +334,18 @@ permutation_test <- function(index,gene_data,ttest_statistic){
 
 ```
 
-```{r, echo = F}
+```{r, echo = F, eval = F}
 
 
 # Testing permutation function
 
-perm_test <- pbsapply(seq(1,5,by = 1),
+perm_test <- pbsapply(seq(1,nrow(array_genes),by = 1),
                              function(x) permutation_test(x,array_genes,
                                                           ttest_result))
 
-permutation_test(1,array_genes,ttest_result)
+# Saving results of the permutation to an RDS file. 
+#saveRDS(perm_test,"C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds")
+
 ```
 
 ```{r}
@@ -356,8 +358,8 @@ test_row <- as.numeric(array_genes[1,c(2:17)])
 
 select_test <- setdiff(test_row,test_subset)
 
-select_test
-test_subset
+class(select_test)
+class(test_subset)
 
 ```
 
