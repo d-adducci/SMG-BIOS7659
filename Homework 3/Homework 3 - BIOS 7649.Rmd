@@ -365,22 +365,97 @@ colnames(permutation_results) <- c("gene_name","p_value")
 
 permutation_sig <- nrow(permutation_results %>% filter(p_value <= 0.01))
 
-```
-
-```{r}
-
-test_matrix <- combinations(16,8,unlist(array_genes[1,c(2:17)]))
-
-test_subset <- test_matrix[1,]
-
-test_row <- as.numeric(array_genes[1,c(2:17)])
-
-select_test <- setdiff(test_row,test_subset)
-
-class(select_test)
-class(test_subset)
+## FINISH QUESTION 2 PART A CODE ##
 
 ```
+
+### Part B
+Apply the following multiple testing adjustment methods to the original t-statistic (#1b) p-values and list the number of genes at a cutoff level of 0.01. Compare and contrast the different methods. Why are some more or less conservative than others? 
+
+**Part i: Bonferonni**
+
+The Bonferonni correction is the original significance level divided by the number of tests. The original $\alpha$ was 0.01, and the number of genes being analyzed is 6,384.
+
+$$Bonferonni\,\,\alpha-level = \frac{\alpha}{n} = \frac{0.01}{6,384}=1.57\times10^{-6}$$
+
+```{r, echo = F}
+
+## START QUESTION 2 PART B CODE ##
+
+# Converting p-value into a numeric value. 
+ttest_numeric <- ttest_result %>% 
+  mutate(p_value = as.numeric(p_value)) %>%
+  arrange(desc(as.numeric(t_statistic)))
+
+# Calculating Bonferonni correction.
+bonf_sig <- 0.01/6384
+
+bonferronni_corr <- nrow(ttest_numeric %>% filter(p_value <= bonf_sig))
+
+```
+
+**Part ii: Sidak**
+
+The Sidak correction is applied through the following equation:
+
+$$Sidak\,\,\alpha-level = 1 - (1-\alpha)^{\frac{1}{m}}=1-(1-0.01)^{\frac{1}{6387}}=1.57 \times 10^{-6}$$
+
+* Where $\alpha=0.01$, the original significance level, and $m=6387$, the number of genes being analyzed. 
+
+```{r, echo = F}
+
+# Calculating Sidak correction.
+sidak_sig <- 1 - (1 - 0.01)^(1/6387)
+
+sidak_corr <- nrow(ttest_numeric %>% filter(p_value <= sidak_sig))
+
+```
+
+**Part iii: Holm step-down procedure**
+
+The Holm step-down procedure works by first ordering the p-values in descending fashion, and starting at the top of this ordered vector. The subsequent recalculated p-values follow the general formula:
+
+$$p-value_k < \frac{\alpha}{m + 1 - k}$$
+* Where $\alpha = 0.01$, the original significance level, $m = 6387$, the number of genes being analyzed, and k is the order in the vector of a particular p-value, where the smallest values starts at $k = 1$. This procedure continues until the $p-value_k$ currently being assessed is no longer $< \frac{\alpha}{m + 1 - k}$. The procedure is then finished. The number of p-values that satisfy the inequality are the number of test where the null hypothesis is rejected after applying the Holm step-down procedure. 
+
+```{r, echo = F}
+
+# Making a function to use the Holm step-down procedure. 
+holm_sdp <- function(data_frame,alpha){
+  # data_frame: The data frame containing the previously calculated p-values. 
+  # alpha: The original significance level
+  
+  m = nrow(data_frame)
+  # Initializing the number of significant tests 
+  # after applying the Holm procedure. 
+  count = 0
+  
+  for(k in 1:m){
+    p_value <- data_frame[k,"p_value"]
+    holm_corr <- alpha/(m + 1 - k)
+    if(p_value < holm_corr){
+      count <- count + 1
+    }
+    else break 
+  }
+  sig_data <- data_frame[c(1:count),]
+  return(sig_data)
+}
+
+```
+
+```{r, echo = F}
+
+# Using Holm step-down procedure function. 
+holm_df <- holm_sdp(ttest_numeric,0.01)
+
+holm_corr <- nrow(holm_df)
+
+```
+
+**Part iv: Benjamini-Hochberg procedure**
+
+
 
 
 
