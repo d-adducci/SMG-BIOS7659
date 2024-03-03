@@ -26,14 +26,14 @@ library(pbapply)
 # Laptop Location:
 # Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
 # Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt"
-array_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
+array_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3arraydata.txt",row.names = 1, header = TRUE,
                          blank.lines.skip = FALSE)
 
 
 # Data Location:
 #Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
 #Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt"
-genenames_data <- read.table("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
+genenames_data <- read.table("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/hw3genenames.txt", header = FALSE, blank.lines.skip = FALSE)
 
 colnames(genenames_data) <- "gene_name"
 
@@ -336,8 +336,7 @@ permutation_test <- function(index,gene_data,ttest_statistic){
 
 ```{r, echo = F, eval = F}
 
-# Testing permutation function
-
+# Applying permutation function. 
 perm_test <- pbsapply(seq(1,nrow(array_genes),by = 1),
                              function(x) permutation_test(x,array_genes,
                                                           ttest_result))
@@ -350,11 +349,11 @@ perm_test <- pbsapply(seq(1,nrow(array_genes),by = 1),
 ```{r, echo = F}
 
 # Data Location:
-# Desktop:
+# Desktop: "C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds"
 # Laptop: "C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds"
 
 # Loading in previously run permutation data. 
-permutation_results <- readRDS("C:/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds") %>% t() %>%
+permutation_results <- readRDS("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 3/hw3data/permutation_results.rds") %>% t() %>%
   as.data.frame %>% mutate(V2 = as.numeric(V2))
 
 colnames(permutation_results) <- c("gene_name","p_value")
@@ -455,6 +454,16 @@ holm_corr <- nrow(holm_df)
 
 **Part iv: Benjamini-Hochberg procedure**
 
+
+### Part C
+Calculate q-values using the **qvalue** library. How many genes have a q-value less than 0.01. What is the $\pi_0$ parameter and what value is estimated using this package? 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART C ##
+qvalues <- qvalue(p = ttest_numeric$p_value)
+
+```
 
 
 
