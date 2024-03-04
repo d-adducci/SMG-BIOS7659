@@ -166,9 +166,14 @@ ttest_tbl <- kbl(head(ttest_order,10),
 
 ttest_tbl
 
+# Determining the number of genes that are significant at the 0.01 level. 
+ttest_sig <- nrow(ttest_order %>% filter(as.numeric(p_value) <= 0.01))
+
 ## FINISH QUESTION 1 PART B CODE ##
 
 ```
+
+Table 2 illustrates the top 10 genes that have the largest t-statistic and their corresponding p-values. There are `r ttest_sig` genes that are significant at the 0.01 level. Results were generated using a 2 sided t-test between the control and experimental groups. 
 
 ### Part C: Alternative 't-statistics'
 
@@ -203,19 +208,29 @@ genes_low_samr <- as.data.frame((samr_test$genes.lo)[,
                                                     c("Gene ID","Score(d)")])%>%
   mutate(`Score(d)` = as.numeric(`Score(d)`))
 
+genes_up_samr <- as.data.frame((samr_test$genes.up)[,
+                                                   c("Gene ID","Score(d)")])%>%
+  mutate(`Score(d)` = as.numeric(`Score(d)`))
 
-samr_test_tbl <- kbl(genes_low_samr[c(1:10),],
+# Combining up and down regulated genes and ordering by t-score. 
+genes_samr <- rbind(genes_low_samr,genes_up_samr)
+
+genes_samr <- genes_samr[order(abs(genes_samr$`Score(d)`),decreasing = TRUE),]
+
+samr_test_tbl <- kbl(genes_samr[c(1:10),],
+                     caption = "10 Largest modified t-statistics - samr",
                      col.names = c("Gene Name","Score (Modified t-statistic)"),
                      booktabs = T, align = "lc", digits = 3) %>%
   kable_styling(latex_options = "HOLD_position")
 
 # Determining how many genes are significant at the 0.01 level. 
-genes_samr_sig <- genes_low_samr %>% filter(`Score(d)` <= 0.10)
+# 14 degrees of freedom means the critical t-score is 2.624. 
+genes_samr_sig <- nrow(genes_samr %>% filter(abs(`Score(d)`) >= 2.624))
 
 
 ```
 
-```{r}
+```{r, echo = F}
 
 samr_test_tbl
 
@@ -223,12 +238,10 @@ samr_test_tbl
 
 ```
 
-Table 3 shows the results for 
+Table 3 shows the 10 largest modified t-statistics which were calculated using the **samr** package. Because a two-sided t-test was used the absolute value of the t-score determines the significance level. There are `r genes_samr_sig` genes that are significant at the 0.01 level. Because there are two groups with 8 measurements in each the number of degrees of freedom is 14, which corresponds to a cutoff for the modified t-statistic of 2.624.   
 
 ### Part C.ii
 Calculate the 'moderated' t-statistic and corresponding p-value using the **limma** package from BioConductor. How many genes are significant at the 0.01 level? List the top 10 genes that have the largest 'penalized' t-statistics. 
-
-The 'moderated' t-statistic is 
 
 ```{r, echo = F}
 
@@ -246,7 +259,7 @@ cont.mat <- makeContrasts(ExpvsCon = Exp - Con, levels = design_mat)
 limma_fit2 <- eBayes(contrasts.fit(limma_fit,cont.mat))
 
 # Extracting top 10 results. 
-limma_results <- topTable(limma_fit2)
+limma_results <- topTable(limma_fit2, number = 6384)
 
 # Using row number to extract gene name for top 10 results. 
 limma_genes <- genenames_data[rownames(limma_results),]
@@ -257,8 +270,8 @@ limma_table_df <- cbind(limma_genes,limma_results[,c(3,4,5)]) %>%
 
 row.names(limma_table_df) <- NULL
 
-limma_table <- kbl(limma_table_df,
-                   caption = "10 Largest modified t-statistics - Limma",
+limma_table <- kbl(head(limma_table_df,10),
+                   caption = "10 Largest moderated t-statistics - Limma",
                    col.names = c("Gene Name","Modified t-statistic",
                                  "p-value","Adj. p-value (BH)"),
                    booktabs = TRUE, align = "lccc",digits = 3) %>%
@@ -266,14 +279,28 @@ limma_table <- kbl(limma_table_df,
 
 limma_table
 
+genes_limma_sig <- nrow(limma_results %>% filter(as.numeric(P.Value) <= 0.01))
+
 ## FINISH QUESTION 1 PART C.ii CODE ##
 
 ### FINISH QUESTION 1 CODE ###
 
 ```
 
+Table 4 shows the 10 largest moderated t-statistics which were calculated using the **limma** package. There are `r genes_limma_sig` genes that are significant at the 0.01 level. 
+
 ### Part D
 Compare and contrast the results for the four methods for ranking genes. Explain the difference in how the different t-statistics are calculated. 
+
+Many genes overlapped in significance between the four different methods. Between method 2 (Table 2), largest t-statistic, and method 3 (Table 3), the modified t-statistic, both top 10 tables had the same genes with the only difference being in the order of some genes. Method 4, the modified t-statistic, had almost all the same genes in its top 10 table (Table 4) as methods 2 and 3, with the exception of an unnamed gene being present instead of Capase7,heart-Img. Method 1 (Table 1), had many of the same genes present in its top 10 table as the other tables, with the exception of having psoriasis-associated and Cy3RT genes instead of Caspase7,heart-Img and ESTS,Highlysimilarto. 
+
+Additionally, the ApoAI,lipid-Img gene that was knocked out between the control and experimental groups was the most significant gene in all top 10 tables. This gene showed decreased expression between the experimental and control groups (Table 1), which makes sense as this gene was specifically knocked-out between these two groups. Method 2 simply calculates t-scores by applying a two-sample t-test to each gene individually. 
+
+The **samr** package calculates the modified t-statistic by dividing the difference of the mean of the two groups by $s_i$, which shifts the test statistic. Class labels are randomly permutated in order to estimate the null distribution of the scores, as well as the standard deviation for each specific gene. The absolute value of the resulting modified t-statistic is smaller than the unpenalized t-statistic. 
+
+The **limma** package calculates the moderated t-statistic using the parametric empirical Bayes method. This method utilizes information between different genes, moderating the residual variances. These moderated residuals are function of both the variance for a specific gene, the gene-wise estimator, and the global variability across all genes. This method allows for an increase in the effective degrees of freedom. The benefit of this approach is that inference on gene expression in reliable and stable for small number of replicates, a common scenario in gene expression analysis. 
+
+
 
 
 
@@ -368,14 +395,16 @@ permutation_sig <- nrow(permutation_results %>% filter(p_value <= 0.01))
 
 ```
 
+The permutation function utilized here worked by selecting each row from the original array and calculating every permutation for measurements between the control and experimental groups. Because there are 16 different measurements this means there are 12,870 different combinations for each gene. The p-value is calculated by determining the number of absolute value permutation t scores that are larger than the absolute value of the t score from the original data frame. This number is then divided by the number of permutations (12,870) to return the permutation p-value. After running this procedure there were `r permutation_sig` genes that are significant at the 0.01 level. 
+
 ### Part B
 Apply the following multiple testing adjustment methods to the original t-statistic (#1b) p-values and list the number of genes at a cutoff level of 0.01. Compare and contrast the different methods. Why are some more or less conservative than others? 
 
-**Part i: Bonferonni**
+**Part i: Bonferroni**
 
-The Bonferonni correction is the original significance level divided by the number of tests. The original $\alpha$ was 0.01, and the number of genes being analyzed is 6,384.
+The Bonferroni correction is the original significance level divided by the number of tests. The original $\alpha$ was 0.01, and the number of genes being analyzed is 6,384.
 
-$$Bonferonni\,\,\alpha-level = \frac{\alpha}{n} = \frac{0.01}{6,384}=1.57\times10^{-6}$$
+$$Bonferroni\,\,\alpha-level = \frac{\alpha}{n} = \frac{0.01}{6,384}=1.57\times10^{-6}$$
 
 ```{r, echo = F}
 
@@ -383,15 +412,18 @@ $$Bonferonni\,\,\alpha-level = \frac{\alpha}{n} = \frac{0.01}{6,384}=1.57\times1
 
 # Converting p-value into a numeric value. 
 ttest_numeric <- ttest_result %>% 
-  mutate(p_value = as.numeric(p_value)) %>%
-  arrange(desc(as.numeric(t_statistic)))
+  mutate(p_value = as.numeric(p_value))
 
-# Calculating Bonferonni correction.
+ttest_numeric <- ttest_numeric[order(ttest_numeric$p_value),]
+
+# Calculating Bonferroni correction.
 bonf_sig <- 0.01/6384
 
-bonferronni_corr <- nrow(ttest_numeric %>% filter(p_value <= bonf_sig))
+bonferroni_corr <- nrow(ttest_numeric %>% filter(p_value <= bonf_sig))
 
 ```
+
+After applying the Bonferroni correction there were `r bonferroni_corr` genes significant. The Bonferroni method is generally the most conservative, as the significance level is divided by the total number of hypothesis under consideration. 
 
 **Part ii: Sidak**
 
@@ -410,9 +442,11 @@ sidak_corr <- nrow(ttest_numeric %>% filter(p_value <= sidak_sig))
 
 ```
 
+After applying the Sidak correction there are `r sidak_corr` genes which are significant. The Sidak correction is generally close to the Bonferroni correction, and in this case rounding to three significant figures returns the same significance level. 
+
 **Part iii: Holm step-down procedure**
 
-The Holm step-down procedure works by first ordering the p-values in descending fashion, and starting at the top of this ordered vector. The subsequent recalculated p-values follow the general formula:
+The Holm step-down procedure is applied by first ordering the p-values in ascending fashion, and starting at the top of this ordered vector. The subsequent recalculated p-values follow the general formula:
 
 $$p-value_k < \frac{\alpha}{m + 1 - k}$$
 * Where $\alpha = 0.01$, the original significance level, $m = 6387$, the number of genes being analyzed, and k is the order in the vector of a particular p-value, where the smallest values starts at $k = 1$. This procedure continues until the $p-value_k$ currently being assessed is no longer $< \frac{\alpha}{m + 1 - k}$. The procedure is then finished. The number of p-values that satisfy the inequality are the number of test where the null hypothesis is rejected after applying the Holm step-down procedure. 
@@ -452,8 +486,42 @@ holm_corr <- nrow(holm_df)
 
 ```
 
+After applying the Holm step-down procedure there were `r holm_corr` significant genes. This is the same as the previous two methods. Because the number of comparisons is in the denominator for the Holm step-down procedure this value will tend to dominate if it is large, resulting in the final correction being similar to the Bonferroni method. 
+
 **Part iv: Benjamini-Hochberg procedure**
 
+The Benjamini-Hochberg procedure is applied by first ordering the p-values in ascending fashion and assigning ranks to the p-values based on their location in the data frame (smallest p-value is 1, second smallest is 2, third smallest is 3, etc.). Next, you calculated the Benjamini-Hochberg critical value using the formula:
+
+$$BH\,\,Critical\,\,Value = \frac{i}{m}Q = \frac{i}{6384}\times0.01$$
+Where 
+
+* $i$: p-value's rank. 
+* $m$: total number of test, in this case there are 6,384. 
+* $Q$: false discovery rate. 
+
+After performing this procedure the highest ranked p-value that is smaller than the Benjamini-Hochberg critical value is found. All p-values above that p-value are considered significant even if a particular p-value is not smaller than the Benjamini-Hochberg critical value. 
+
+```{r, echo = F}
+
+# Applying the Benjamini-Hochberg procedure. 
+bh_data_frame <- ttest_numeric
+
+# Adding a row of ranks. 
+bh_data_frame$rank <- seq.int(nrow(bh_data_frame))
+
+# Calculating critical values, where alpha = 0.01. 
+bh_data_frame$critical_value <- (bh_data_frame$rank/6384)*0.01
+
+# Selecting out significant genes. All p-values above the highest p-value
+# that is smaller than the critical value are also smaller than their 
+# corresponding critical values. 
+bh_corr <- nrow(bh_data_frame %>% filter(p_value < critical_value))
+
+## FINISH QUESTION 2 PART B CODE ##
+
+```
+
+After applying the Benjamini-Hochberg correction there were `r bh_corr` significant genes. This method was the least conservative among the four tested. The significance level is calculated individually for each gene based on rank. The rank is a multiplier for the significance level, which increases the number of significant genes. 
 
 ### Part C
 Calculate q-values using the **qvalue** library. How many genes have a q-value less than 0.01. What is the $\pi_0$ parameter and what value is estimated using this package? 
@@ -463,12 +531,23 @@ Calculate q-values using the **qvalue** library. How many genes have a q-value l
 ## START QUESTION 2 PART C ##
 qvalues <- qvalue(p = ttest_numeric$p_value)
 
+# Calculating number of q_values less than 0.01. 
+qvalues_sig <- sum(qvalues$qvalues < 0.01)
+
+# Extracting the pi0 values. 
+pi0 <- round(qvalues$pi0,3)
+
+## FINISH QUESTION 2 PART C CODE ##
+
+### FINISH QUESTION 2 CODE ###
+
 ```
 
+After using the qvalue function the number of q-values that are less than 0.01 are `r qvalues_sig`. The $\pi_0$ parameter is the estimated proportion of null p-values, and is returned from the function as `r pi0`.
 
+\newpage
 
+# CODE 
 
-
-
-
-
+```{r, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
