@@ -355,7 +355,7 @@ For the following plots, use the log scale.
 EDASeq::boxplot(counts)
 ```
 
-The above figure shows boxplots of the sample counts. Because a **SeqExpressionSet** was created the output from the boxplot should be on the log scale already. The medians are not the same for all 
+The above figure shows boxplots of the sample counts. Because a **SeqExpressionSet** was created the output from the boxplot should be on the log scale already. The medians are not the same for all samples, with 1 and 2 (mutant) are higher than 3 and 4 (wild type). 
 
 ```{r, echo = F}
 
@@ -364,22 +364,28 @@ EDASeq::meanVarPlot(counts, log = TRUE)
 
 ```
 
+The above plot shows the variance-mean relationship for the counts data. Both sample types have a similar trend for lower means, but once mean count gets past 4 the variance of the wild type samples increases rapidly compared to the mutant samples. 
+
 
 ```{r, echo = F}
 
 # Assessing bias by GC content using a bias plot. 
-EDASeq::biasPlot(counts,"gc",log = T)
+EDASeq::biasPlot(counts,"gc",log = T,ylab = "log(gene counts)")
 
 ```
+
+The above plot illustrates the count versus the GC content. As GC content increases both the mutant and wild type samples increase in count. Initially the mutant samples have a higher count with lower GC content, but this changes after both samples peak, where the wild type has higher gene count for the highest GC contents. 
 
 ```{r, echo = F}
 
 # Assessing bias by length using a bias plot
-EDASeq::biasPlot(counts,"length",log = T)
+EDASeq::biasPlot(counts,"length",log = T, ylab = "log(gene counts)")
 
 ## FINISH QUESTION 2 PART B CODE ##
 
 ```
+
+The above plot illustrates the count versus the length (in base pairs). The mutant samples always have higher gene counts for all lengths, with differences increasing as length gets smaller and larger. The gene counts are relativly similar for length around the middle portion of the plot before diverging. 
 
 ### Part C
 Apply **withinLaneNormalization()** to normalize by GC content. See help file and try different methods for normalization with the "which" option. Describe the different methods. Use **biasPlot()** before and after normalization. How do the methods compare? Save the normalized results in a new object to use in the next part. 
@@ -393,29 +399,37 @@ Apply **withinLaneNormalization()** to normalize by GC content. See help file an
 # Using loess method
 loess_within <- withinLaneNormalization(counts,"gc",which = "loess")
 
-EDASeq::biasPlot(loess_within,"gc",log = T,ylim = c(2,4))
+EDASeq::biasPlot(loess_within,"gc",log = T,ylim = c(2,4),ylab = "log(gene counts)")
 
 
 ```
+
+The above plot show the results after normalizing using the within lane loess method. The difference in gene counts as GC increases between the mutant and wild type samples is more consistent throughout the GC range. The loess method works by regressing the counts and subtracting the loess fit from the counts, removing the dependence. 
+
+
 
 ```{r, echo = F}
 
 # Using median method. 
 median_within <- withinLaneNormalization(counts,"gc",which = "median")
 
-EDASeq::biasPlot(median_within,"gc",log = T)
+EDASeq::biasPlot(median_within,"gc",log = T, ylim = c(2,4))
 
 ```
+
+The above plot show the results after normalizing using the within lane median method.The difference in gene counts as the GC increases is similar to the loess method in that there is more consistency between the mutant and wild type samples compared to the plot showing pre-normalization results. However, the median method has a larger spread between samples compared to the loess method. The median method works by stratifying genes and then scaling the data so that each bin has the same median.  
+
 
 ```{r, echo = F}
 
 # Using upper method. 
 upper_within <- withinLaneNormalization(counts,"gc",which = "upper")
 
-EDASeq::biasPlot(upper_within,"gc",log = T)
+EDASeq::biasPlot(upper_within,"gc",log = T, ylim = c(2,4))
 
 ```
 
+The above plot show the results after normalizing using the within lane upper method. As with the previous two methods there is more consistency between samples across the GC range compared to the unnormalized data. However, the left hand side of this plot shows a significant difference between the wild type samples compared to the other methods. The upper method works by scaling the data so that the same upper quartiles fit in each bin. 
 
 ```{r, echo = F}
 
@@ -428,10 +442,12 @@ EDASeq::biasPlot(full_within,"gc",log = T)
 
 ```
 
+The above plot show the results after normalizing using the within lane full method. This method also shows more consistency between the mutant and wild type samples across the GC range. In the middle portion of the plot there is a noticeable difference in counts between the two wild type samples. The full method works by using a non linear full quartile normalization, forcing the distribution to be the same. 
+
 ### Part D
 Using the within-lane normalized data from the previous part, apply **betweenLaneNormalization()** to normalize across samples. Try different methods for normalization with the "which" option. Describe the different methods. Use **boxplot()** before and after normalization. How do the methods compare? 
 
-```{r, echo = F}
+```{r, echo = F, fig.height = 3}
 
 ## START QUESTION 2 PART D CODE ##
 
@@ -440,63 +456,12 @@ loess_between_median <- betweenLaneNormalization(loess_within,which = "median")
 loess_between_upper <- betweenLaneNormalization(loess_within,which = "upper")
 loess_between_full <- betweenLaneNormalization(loess_within,which = "full")
 
-par(mfrow = c(1,2))
+par(mfrow = c(1,2),mar = c(2,2,2,2))
 
-EDASeq::boxplot(loess_within)
-EDASeq::boxplot(loess_between_median)
-EDASeq::boxplot(loess_between_upper)
-EDASeq::boxplot(loess_between_full)
-
-```
-
-
-```{r, echo = F}
-
-# Using different between methods on the within median method. 
-median_between_median <- betweenLaneNormalization(median_within,
-                                                  which = "median")
-median_between_upper <- betweenLaneNormalization(median_within,which = "upper")
-median_between_full <- betweenLaneNormalization(median_within,which = "full")
-
-par(mfrow = c(1,2))
-
-EDASeq::boxplot(median_within)
-EDASeq::boxplot(median_between_median)
-EDASeq::boxplot(median_between_upper)
-EDASeq::boxplot(median_between_full)
-
-```
-
-
-```{r, echo = F}
-
-# Using different between methods on the within upper method.
-upper_between_median <- betweenLaneNormalization(upper_within,which = "median")
-upper_between_upper <- betweenLaneNormalization(upper_within,which = "upper")
-upper_between_full <- betweenLaneNormalization(upper_within,which = "full")
-
-par(mfrow = c(1,2))
-
-EDASeq::boxplot(upper_within)
-EDASeq::boxplot(upper_between_median)
-EDASeq::boxplot(upper_between_upper)
-EDASeq::boxplot(upper_between_full)
-
-```
-
-```{r, echo = F}
-
-# Using different between methods on the within full method. 
-full_between_median <- betweenLaneNormalization(full_within,which = "median")
-full_between_upper <- betweenLaneNormalization(full_within,which = "upper")
-full_between_full <- betweenLaneNormalization(full_within,which = "full")
-
-par(mfrow = c(1,2))
-
-EDASeq::boxplot(full_within)
-EDASeq::boxplot(full_between_median)
-EDASeq::boxplot(full_between_upper)
-EDASeq::boxplot(full_between_full)
+EDASeq::boxplot(loess_within, main = "None")
+EDASeq::boxplot(loess_between_median, main = "Median")
+EDASeq::boxplot(loess_between_upper, main = "Upper")
+EDASeq::boxplot(loess_between_full, main = "Full")
 
 ## FINISH QUESTION 2 PART D CODE ##
 
@@ -504,6 +469,7 @@ EDASeq::boxplot(full_between_full)
 
 ```
 
+The above boxplots show the results of using different between lane normalization methods on the within lane loess normalized data. The loess was used as it seemed to be the most consistent across GC range. Compared to the unnormalized (in terms of between lane normalization) plot, the median shifts the data so that all boxplots have the same median (as the name implies). The full method also shifts the data so that every sample has the same median, as well as forcing the distribution of each sample to be the same. The upper method appears to do very little, if anything, compared to the unnormalized plot. 
 
 \newpage
 
