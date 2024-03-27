@@ -1,0 +1,75 @@
+---
+title: "Homework 4 - BIOS 7649"
+author: "Dominic Adducci"
+output: pdf_document
+---
+
+```{r, echo = F}
+
+library(tidyverse)
+
+```
+
+```{r, echo = F}
+
+### START QUESTION 1 CODE ###
+
+## START QUESTION 1 PART B CODE ##
+
+# Loading in summary statistic data
+summary_stat_data <- read.delim("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 4/Homework 4 Data/Galaxy20-[FASTQ_Summary_Statistics_on_data_19].tabular")
+
+# First column name came in as X.column. Changing that
+colnames(summary_stat_data)[1] <- "Column"
+
+```
+
+```{r, echo = F}
+
+# Transforming data into long format
+summary_stat_data_2 <- summary_stat_data %>%
+  select(Column, A_Count, C_Count, G_Count, T_Count, N_Count) %>%
+  pivot_longer(cols = ends_with("Count"),
+               values_to = "Counts",
+               names_to = "Nucleotide",
+               names_pattern = "(.)_Count") %>%
+  mutate(Column = factor(Column),
+         Nucleotide = factor(Nucleotide, levels = c("A","T","C","G","N")))
+
+```
+
+```{r, echo = F}
+
+# Making spaghetti plots
+summary_plots <- summary_stat_data_2 %>%
+  ggplot(aes(x = Column, y = (Counts/3614610)*100,group = Nucleotide,
+             col = Nucleotide)) +
+  geom_line() +
+  facet_wrap(~ Nucleotide) +
+  labs(x = "Position",y = "Percentage of Nucleotide Content") +
+  theme_bw() +
+  theme(legend.position = "none", panel.grid.minor = element_blank(),
+        axis.text.x = element_text(angle = 90, size = 4))
+
+summary_plots
+
+## FINISH QUESTION 1 PART B CODE ##
+
+### FINISH QUESTION 1 CODE ###
+
+```
+
+
+
+\newpage
+
+# CODE 
+
+```{r, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
+
+
+
+
+
+
