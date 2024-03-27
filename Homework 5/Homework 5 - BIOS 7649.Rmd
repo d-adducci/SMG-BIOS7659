@@ -34,7 +34,7 @@ data("uCovar")
 ### Part A
 Using **rnapower()**, recreate Figure 3 from the journal club paper using: Hart et al., (2013) "Calculating sample size estimates for RNA sequencing data." What does this figure show? 
 
-```{r, echo = F}
+```{r, echo = F, warning = F}
 
 ## START QUESTION 1 PART A CODE ##
 
@@ -95,53 +95,57 @@ For the Montgomery data, create a row in Table 1 in the Hart et al. paper. Note 
 
 ```{r, echo = F}
 
-## START QUESTION 1 PART B CODE ##
+## START QUESTION 1 PART B CODE ## 
 
-# Making a DGEList from the Montgomery data. 
-mgd_dgel <- DGEList(montgomery.subset)
-
-# Calculating normal factors.
-mgd_nf <- calcNormFactors(mgd_dgel)
+# Making a DGEL list.
+mgd_dgel <- DGEList(counts = montgomery.subset)
 
 # Calculating counts per million.
-cpm_results <- cpm(mgd_nf)
+cpm_results <- cpm(montgomery.subset)
+
+# Average count per million for each gene. 
+cpm_average <- rowMeans(cpm_results)
 
 # Initializing the ranges. 
-cpg_cpm_range <- c(0,0.01,0.1,1,10,100,1000,Inf)
+cpg_cpm_lower <- c(0,0.01,0.1,1,10,100,1000)
+cpg_cpm_upper <- c(0.01,0.1,1,10,100,1000,Inf)
 
 # Storing genes counts in a vector.
 gene_counts <- vector("numeric", 7)
 
 # Using a for loop to calculate the distribution of counts for each range.
 for(i in 1:7){
-  gene_counts[i] <- sum(rowSums(cpm_results >= cpg_cpm_range[i] & 
-                                cpm_results < cpg_cpm_range[i + 1]) > 0)
+  gene_counts[i] <- sum(cpm_average >= cpg_cpm_lower[i] & 
+                                cpm_average < cpg_cpm_upper[i]) / 
+    length(cpm_average) * 100
 }
 
-# Calculating the average number of reads for each gene and then calculating
-# the average counts in total. Lastly calculate counts per million. 
-# Total library size serve as denominator. 
-gene_average <- mean(rowMeans(mgd_dgel$counts))
 
 library_size <- sum(mgd_dgel$samples$lib.size)
 
-read_average <- (gene_average/library_size) * 1e6
+gene_average <- rowSums(mgd_dgel$counts) / ncol(mgd_dgel$counts)
+
+read_average <- mean(gene_average)/library_size * 1e6
 
 table1_row <- data.frame(matrix(c(read_average,100,gene_counts),nrow = 1))
 
 table1_row <- cbind("Montgomery Data",10,table1_row)
 
 colnames(table1_row) <- c("Sample","n","Avg Reads","% Mapped","<0.01",
-                          "0.01-0.1","0.1-1","1-10","10-100","100-10")
+                          "0.01-0.1","0.1-1","1-10","10-100","100-1000",">1000")
 
 table1_tbl <- table1_row %>%
   kbl(caption = "Montgomery Data: Counts per Gene per Millions Reads Mapped",
-      booktabs = TRUE) %>%
+      booktabs = TRUE, digits = 2) %>%
   kable_styling(latex_options = "HOLD_position")
+
+table1_tbl
 
 ## FINISH QUESTION 1 PART B CODE ##
 
 ```
+
+Table 1 shows the recreation of the Table 1 in Hart et al. for the Montgomery data set. Because genes with 0 counts in all samples were excluded the % mapped is 100% in contrast to the Table 1 in Hart et al., which had a range of mapping from 18-78%. Compared to the Hart et al. data set a higher percentage of genes were detected in the counts per million ranges of 0.01-0.1 and 0.1-1. This may suggest that even with the genes with zero counts across all samples excluded the percent mapped for the Montgomery data set was greater than for the Hart et al. data sets. 
 
 ### Part C
 Calculate the biological coefficient of variations (CV) from the Montgomery human lymphoblastoid data (use the function **estimateTagwiseDisp()** in edgeR). Plot the histogram and empirical cdf (use **ecdf()** function) and report the median and 90% percentile. How do the CVs compare with the examples in the Hart et al., paper in Figure 2? 
@@ -149,7 +153,7 @@ Calculate the biological coefficient of variations (CV) from the Montgomery huma
 The square root of the negative binomial dispersion is known as the biological coefficient of variation (BCV).
 
 $$BCV = \sqrt{\phi_g}\,\,;\,\,where\,\,\phi_g = NB\,\,dispersion$$
-Calculating this first involved estimating the common dispersion and then the tagwise dispersion. After this the tagwise dispersions can be extracted and plotted using both a histogram and a cumulative distribution plot. 
+Calculating this first involved estimating the common dispersion and then the tagwise dispersion. After this the tagwise dispersion can be extracted and plotted using both a histogram and a cumulative distribution plot. 
 
 ```{r, echo = F}
 
@@ -170,9 +174,34 @@ twd_values <- sqrt(twd_md$tagwise.dispersion)
 # Creating empirical CDF. 
 twd_ecdf <- ecdf(twd_values)
 
-hist(twd_values)
-plot(ecdf(twd_values))
+# Calculating median and 90th percentile cv across genes. 
+twd_median <- quantile(twd_ecdf,0.5)
+twd_nintieth <- quantile(twd_ecdf,0.9)
+
 ```
+
+```{r, echo = F}
+
+hist(twd_values, main = "Histogram of Biological CVs - Montogmery Data Set",
+     xlab = "Biological CV")
+
+```
+
+The above histogram shows the frequency of different biological CV values for the Montgomery data set. There is a noticeable peak around 0.5, as well as some right skew. 
+
+```{r, echo = F}
+
+plot(ecdf(twd_values), 
+     main = "Empirical Cumulative Distribution for Biological CV",
+     ylab = "Cumulative Distribution",xlab = "Biological CV")
+
+```
+
+The above plot shows the cumulative distribution of biological CV from the Montgomery data set. Compared to the Hart et al. data sets the Montgomery data set has a cumulative distribution which is more spread out, as the highest biological CV value goes past 2.0, compared to the Hart et al. data sets which reached a cumulative distribution of 1 around a biological CV of 1. 
+
+* median percentile: `r twd_median`
+* 90th percentile: `r twd_nintieth`
+
 
 ### Part D
 Using **rnapower()**, recreate Figure 3 from Hart et al. again but with two curves using the median and the 90% percentile CV across genes for the Montgomery data. What sample size do you recommend?
@@ -180,10 +209,6 @@ Using **rnapower()**, recreate Figure 3 from Hart et al. again but with two curv
 ```{r, echo = F}
 
 ## START QUESTION 1 PART D CODE ##
-
-# Calculating median and 90th percentile cv across genes. 
-twd_median <- quantile(twd_ecdf,0.5)
-twd_nintieth <- quantile(twd_ecdf,0.9)
 
 # Making a plot to show sample size using rnapower() function.
 twd_rnapower <- data.frame(rnapower(depth = seq(1,50,by = 1),
@@ -212,7 +237,7 @@ twd_rnapower_long <- twd_rnapower_long %>%
   mutate(depth = as.numeric(depth),
          cv = factor(cv))
 
-twd_ss_plot <- ggplot(twd_rnapower_long, aes(depth,
+twd_ss_plot <- ggplot(twd_rnapower_long, aes(x = depth,
                                              y = sample_size,
                                              color = cv, shape = cv)) +
   geom_point() +
@@ -231,11 +256,38 @@ twd_ss_plot
 
 ```
 
+Using a CV value of the median to calculate sample size will only ensure that half of the genes are below that CV value. Using the 90th percentile will ensure that 90% of genes are at or below that CV value. Because the sample sizes stabilize relatively quickly as depth of gene changes along the x-axis a sample size of around 135 should be used.  
 
 ### Part E 
 Using **rnapower()**, recreate the curve (not the histogram) in the top Figure 4 from the Hart et al., paper. If you cannot recreate the figure, please explain any differences. 
 
+```{r, echo = F}
 
+# Calculating power for various fold changes. 
+power_calc <- data.frame(rnapower(depth = 20,n = 20,cv = 0.32, alpha = 0.05,
+                                  effect = seq(1,8,by = 0.001)))
+
+# Formatting the results of the power calculation.
+colnames(power_calc) <- "Power"
+
+power_calc <- rownames_to_column(power_calc,"Fold Change")
+
+power_calc <- power_calc %>% 
+  mutate(`Fold Change` = as.numeric(`Fold Change`))
+
+# Making a plot of the power curve.
+power_curve <- ggplot(power_calc, aes(x = `Fold Change`,
+                                      y = Power)) +
+  geom_line() +
+  labs(title = "Power Curve For Various Fold Changes",
+       x = "Fold Change",y = "Power") +
+  theme_bw() 
+
+power_curve
+
+```
+
+The above plot shows the relationship between power and fold change.This plot looks relatively close to the plot provided in Hart et al. However, a depth of 20 was assumed for this plot, which was not mentioned in the paper. Additionally, the text of the paper says an $\alpha = 0.001$ was used, while the figure caption says an $\alpha = 0.05$ was used. For the above plot a depth of 20, a sample size of 20, a CV of 0.32, and an alpha of 0.05 were set.    
 
 # Question 2 - Next Generation Sequencing: Pre-Processing
 
@@ -303,7 +355,7 @@ For the following plots, use the log scale.
 EDASeq::boxplot(counts)
 ```
 
-The above figure shows boxplots of the sample counts. Because a **SeqExpressionSet** was created the output from the boxplot should be on the log scale already. 
+The above figure shows boxplots of the sample counts. Because a **SeqExpressionSet** was created the output from the boxplot should be on the log scale already. The medians are not the same for all 
 
 ```{r, echo = F}
 
@@ -341,7 +393,7 @@ Apply **withinLaneNormalization()** to normalize by GC content. See help file an
 # Using loess method
 loess_within <- withinLaneNormalization(counts,"gc",which = "loess")
 
-EDASeq::biasPlot(loess_within,"gc",log = T)
+EDASeq::biasPlot(loess_within,"gc",log = T,ylim = c(2,4))
 
 
 ```
