@@ -14,6 +14,8 @@ library(kableExtra)
 library(yeastRNASeq)
 library(EDASeq)
 
+pardefault <- par()
+
 ```
 
 # Question 1 - Next Generation Sequencing: Sample Size Estimates
@@ -85,6 +87,8 @@ figure3_plot
 ## FINISH QUESTION 1 PART A CODE ##
 
 ```
+
+The above figure shows the sample size needed as the depth of gene increases from 1 to 50, and cv (coefficient of variation) varies between 0.4, 0.8, and 1.2. 
 
 ### Part B
 For the Montgomery data, create a row in Table 1 in the Hart et al. paper. Note that genes that have zero counts in all 10 samples were already excluded, so "% mapped", will be 100%. How does the Montgomery data compare to the other data sets in Table 1? 
@@ -242,20 +246,211 @@ Using **rnapower()**, recreate the curve (not the histogram) in the top Figure 4
 # Loading in yeast data. 
 data(geneLevelData)
 data(yeastGC)
+data(yeastLength)
 
 ```
 
 ### Part A
 Within **geneLevelData**, how many genes have all zeros as counts? How many have at least one sample with a zero? 
 
+```{r, echo = F}
+
+## START QUESTION 2 PART A CODE ##
+
+# Finding number of genes with all zero counts. 
+genes_all_zero <- geneLevelData %>%
+  dplyr::filter(mut_1 == 0 & mut_2 == 0 & wt_1 == 0 & wt_2 == 0)
+
+# Finding number of genes with at least one zero count.
+gene_one_zero <- geneLevelData %>%
+  dplyr::filter(mut_1 == 0 | mut_2 == 0 | wt_1 == 0 | wt_2 == 0)
+
+# Cleaning data so that only genes with a total count of 10 between samples
+# are included. 
+geneLevelDataFilter <- geneLevelData %>%
+  mutate(row_sums = rowSums(across(where(is.numeric)))) %>%
+  filter(row_sums >= 10) %>%
+  select(-row_sums)
+
+# Creating a SeqExpressionSet
+exprs = as.matrix(geneLevelDataFilter) # matrix of counts
+sub = intersect(rownames(geneLevelDataFilter),names(yeastGC))
+exprs = exprs[sub,] # only examine genes with annotated GC content/length
+row.names(exprs) = NULL # remove row and column names
+colnames(exprs) = NULL
+# Create a SeqExpressionSet, which contains counts, labels for the samples and GC content/length
+counts = newSeqExpressionSet(counts = exprs,
+                             phenoData = AnnotatedDataFrame(data.frame(conditions = factor(c("mut","mut","wt","wt")),
+                                                                       row.names = colnames(exprs))),
+                             featureData = data.frame(gc = yeastGC[sub],
+                                                      length = yeastLength[sub]))
+
+## FINISH QUESTION 2 PART A CODE ##
+
+```
+
+* There are `r nrow(genes_all_zero)` genes that have all zero as counts. 
+* There are `r nrow(gene_one_zero)` genes that have at least one zero count between the four different samples. 
+
+### Part B
+For the following plots, use the log scale. 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART B CODE ##
+
+# Making a boxplot for the counts.
+EDASeq::boxplot(counts)
+```
+
+The above figure shows boxplots of the sample counts. Because a **SeqExpressionSet** was created the output from the boxplot should be on the log scale already. 
+
+```{r, echo = F}
+
+# Making a mean variance plot.
+EDASeq::meanVarPlot(counts, log = TRUE)
+
+```
 
 
+```{r, echo = F}
+
+# Assessing bias by GC content using a bias plot. 
+EDASeq::biasPlot(counts,"gc",log = T)
+
+```
+
+```{r, echo = F}
+
+# Assessing bias by length using a bias plot
+EDASeq::biasPlot(counts,"length",log = T)
+
+## FINISH QUESTION 2 PART B CODE ##
+
+```
+
+### Part C
+Apply **withinLaneNormalization()** to normalize by GC content. See help file and try different methods for normalization with the "which" option. Describe the different methods. Use **biasPlot()** before and after normalization. How do the methods compare? Save the normalized results in a new object to use in the next part. 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART C CODE ##
+
+# Normalizing GC content using different methods. 
+
+# Using loess method
+loess_within <- withinLaneNormalization(counts,"gc",which = "loess")
+
+EDASeq::biasPlot(loess_within,"gc",log = T)
 
 
+```
+
+```{r, echo = F}
+
+# Using median method. 
+median_within <- withinLaneNormalization(counts,"gc",which = "median")
+
+EDASeq::biasPlot(median_within,"gc",log = T)
+
+```
+
+```{r, echo = F}
+
+# Using upper method. 
+upper_within <- withinLaneNormalization(counts,"gc",which = "upper")
+
+EDASeq::biasPlot(upper_within,"gc",log = T)
+
+```
 
 
+```{r, echo = F}
+
+# Using full method.
+full_within <- withinLaneNormalization(counts,"gc",which = "full")
+
+EDASeq::biasPlot(full_within,"gc",log = T)
+
+## FINISH QUESTION 2 PART C CODE ##
+
+```
+
+### Part D
+Using the within-lane normalized data from the previous part, apply **betweenLaneNormalization()** to normalize across samples. Try different methods for normalization with the "which" option. Describe the different methods. Use **boxplot()** before and after normalization. How do the methods compare? 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART D CODE ##
+
+# Using different between methods on the within loess method.
+loess_between_median <- betweenLaneNormalization(loess_within,which = "median")
+loess_between_upper <- betweenLaneNormalization(loess_within,which = "upper")
+loess_between_full <- betweenLaneNormalization(loess_within,which = "full")
+
+par(mfrow = c(1,2))
+
+EDASeq::boxplot(loess_within)
+EDASeq::boxplot(loess_between_median)
+EDASeq::boxplot(loess_between_upper)
+EDASeq::boxplot(loess_between_full)
+
+```
 
 
+```{r, echo = F}
+
+# Using different between methods on the within median method. 
+median_between_median <- betweenLaneNormalization(median_within,
+                                                  which = "median")
+median_between_upper <- betweenLaneNormalization(median_within,which = "upper")
+median_between_full <- betweenLaneNormalization(median_within,which = "full")
+
+par(mfrow = c(1,2))
+
+EDASeq::boxplot(median_within)
+EDASeq::boxplot(median_between_median)
+EDASeq::boxplot(median_between_upper)
+EDASeq::boxplot(median_between_full)
+
+```
+
+
+```{r, echo = F}
+
+# Using different between methods on the within upper method.
+upper_between_median <- betweenLaneNormalization(upper_within,which = "median")
+upper_between_upper <- betweenLaneNormalization(upper_within,which = "upper")
+upper_between_full <- betweenLaneNormalization(upper_within,which = "full")
+
+par(mfrow = c(1,2))
+
+EDASeq::boxplot(upper_within)
+EDASeq::boxplot(upper_between_median)
+EDASeq::boxplot(upper_between_upper)
+EDASeq::boxplot(upper_between_full)
+
+```
+
+```{r, echo = F}
+
+# Using different between methods on the within full method. 
+full_between_median <- betweenLaneNormalization(full_within,which = "median")
+full_between_upper <- betweenLaneNormalization(full_within,which = "upper")
+full_between_full <- betweenLaneNormalization(full_within,which = "full")
+
+par(mfrow = c(1,2))
+
+EDASeq::boxplot(full_within)
+EDASeq::boxplot(full_between_median)
+EDASeq::boxplot(full_between_upper)
+EDASeq::boxplot(full_between_full)
+
+## FINISH QUESTION 2 PART D CODE ##
+
+### FINISH QUESTION 2 CODE ###
+
+```
 
 
 \newpage
