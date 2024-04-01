@@ -1,0 +1,93 @@
+---
+title: "Homework 6 - BIOS 7649"
+author: "Dominic Adducci"
+output: pdf_document
+---
+
+```{r, echo = F, include = F}
+
+library(DESeq2)
+library(edgeR)
+library(Biobase)
+library(tidyverse)
+
+```
+
+# Question 1: RNA-Seq: Differential Expression 
+
+```{r, echo = F}
+
+### START QUESTION 1 CODE ###
+
+# Loading in data 
+load(url("https://bowtie-bio.sourceforge.net/recount/ExpressionSets/bottomly_eset.RData"))
+
+# Formatting data for R
+gsub("/","_",phenoData(bottomly.eset)$strain)
+
+phenoData(bottomly.eset)$strain
+
+featureNames(bottomly.eset)[1:10]
+bottomly.count.table <- exprs(bottomly.eset)
+dim(bottomly.count.table)
+head(row.names(bottomly.count.table))
+
+```
+
+### Part A
+Create a new data frame with genes that have at least 10 counts (summed across samples). How many genes are kept? Create the data object for DESeq2 (use **DESeqDataSetFromMatrix()**) and the data object for edgeR (use **DGEList()**). 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART A CODE ##
+
+# Filtering data so that only genes with at 10 counts are kept. 
+bottomly_filter <- as.data.frame(bottomly.count.table) %>%
+  mutate(row_sums = rowSums(across(where(is.numeric)))) %>%
+  filter(row_sums >= 10) %>%
+  select(-row_sums)
+
+# Checking how many genes (rows) were kept. 
+filter_gene_count <- nrow(bottomly_filter)
+
+# Making objects for DESeq2 and edgeR
+
+# DESeq2: 
+# Extracting column names and converting to a factor for design matrix. 
+bottomly_col_names <- factor(colnames(bottomly_filter))
+
+DESeq2_obj <- DESeqDataSetFromMatrix(as.matrix(bottomly_filter),
+                                     data.frame(bottomly_col_names), 
+                                     ~ bottomly_col_names)
+
+# edgeR:
+edgeR_obj <- DGEList(counts = bottomly_filter)
+
+## FINISH QUESTION 1 PART A CODE ##
+
+```
+
+After creating a new data frame with genes that have at least 10 counts there are `r filter_gene_count` genes remaining. 
+
+### Part B
+Calculate the DESeq2 size factors (use **estimateSizeFactors()** and **sizeFactors()**). Calculate the edgeR size factors using the "TMM" method (use **calcNormFactors()**). What are size factors? How do the two sets of size factors compare? 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART B CODE ##
+
+# Calculating size factors using estimateSizeFactors from DESeq2. 
+# Default values were used, with the exception of quieting output. 
+# Results are extracted using the sizeFactors function. 
+DESeq2_sf_obj <- estimateSizeFactors(DESeq2_obj, quiet = TRUE)
+
+DESeq2_sf <- sizeFactors(DESeq2_sf)
+
+# Calculating size factors using the normLibSizes function (the function 
+# formerly known as calcNormFactors) from edgeR. "TMM" method selected. 
+edgeR_sf <- normLibSizes(edgeR_obj,method = "TMM")
+
+```
+
+
+
