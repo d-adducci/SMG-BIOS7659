@@ -9,6 +9,8 @@ output: pdf_document
 library(DESeq2)
 library(edgeR)
 library(Biobase)
+library(RUVSeq)
+library(cqn)
 library(tidyverse)
 
 ```
@@ -25,7 +27,7 @@ load(url("https://bowtie-bio.sourceforge.net/recount/ExpressionSets/bottomly_ese
 # Formatting data for R
 gsub("/","_",phenoData(bottomly.eset)$strain)
 
-phenoData(bottomly.eset)$strain
+phenoData(bottomly.eset)@data[,'strain']
 
 featureNames(bottomly.eset)[1:10]
 bottomly.count.table <- exprs(bottomly.eset)
@@ -37,7 +39,7 @@ head(row.names(bottomly.count.table))
 ### Part A
 Create a new data frame with genes that have at least 10 counts (summed across samples). How many genes are kept? Create the data object for DESeq2 (use **DESeqDataSetFromMatrix()**) and the data object for edgeR (use **DGEList()**). 
 
-```{r, echo = F}
+```{r, echo = F, warning = F}
 
 ## START QUESTION 1 PART A CODE ##
 
@@ -53,15 +55,17 @@ filter_gene_count <- nrow(bottomly_filter)
 # Making objects for DESeq2 and edgeR
 
 # DESeq2: 
-# Extracting column names and converting to a factor for design matrix. 
-bottomly_col_names <- factor(colnames(bottomly_filter))
+# Extracting strain information. 
+bottomly_strain <- gsub("/","_",phenoData(bottomly.eset)$strain)
+
+colnames(bottomly_filter) <- bottomly_strain
 
 DESeq2_obj <- DESeqDataSetFromMatrix(as.matrix(bottomly_filter),
-                                     data.frame(bottomly_col_names), 
-                                     ~ bottomly_col_names)
+                                     data.frame(bottomly_strain), 
+                                     ~ bottomly_strain)
 
 # edgeR:
-edgeR_obj <- DGEList(counts = bottomly_filter)
+edgeR_obj <- DGEList(counts = bottomly_filter,group = factor(bottomly_strain))
 
 ## FINISH QUESTION 1 PART A CODE ##
 
@@ -81,13 +85,84 @@ Calculate the DESeq2 size factors (use **estimateSizeFactors()** and **sizeFacto
 # Results are extracted using the sizeFactors function. 
 DESeq2_sf_obj <- estimateSizeFactors(DESeq2_obj, quiet = TRUE)
 
-DESeq2_sf <- sizeFactors(DESeq2_sf)
+DESeq2_sf <- sizeFactors(DESeq2_sf_obj)
 
 # Calculating size factors using the normLibSizes function (the function 
 # formerly known as calcNormFactors) from edgeR. "TMM" method selected. 
 edgeR_sf <- normLibSizes(edgeR_obj,method = "TMM")
 
 ```
+
+
+### Part C
+Test for differences between the two strains using DESeq2 (use **nbinomWaldTest()**) and edgeR (use **glmFit()** and **glmLRT()**). Note that the two methods do not return the same amount of details for the results. Using adjusted p-values with the Benjamini-Hochberg method (Note: check what the functions provide or if you need to do this yourself), how many genes are found in each method to be differentially expressed? What is the overlap between the methods? Check the results for one example gene that is significant in one method but not the other. Compare the methods based on the estimate of the fold change and p-value for the example. What do you conclude about the differences between the two methods? 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART C CODE ##
+
+# Testing using DESeq2. First need to estimate dispersion, and then use the 
+# Negative Binomial Wald Test. Results are extracted using the 'results()'
+# function and converted to a data frame. 
+DESeq2_disp <- estimateDispersions(DESeq2_sf_obj)
+DESeq2_diff_test <- nbinomWaldTest(DESeq2_disp, quiet = TRUE)
+DESeq2_results <- data.frame(results(DESeq2_diff_test))
+
+# Order results by adjusted p-value, and selecting adjusted p-values that 
+# are less than 0.01. 
+DESeq2_results_order <- DESeq2_results[order(DESeq2_results$padj),]
+DESeq2_BH_corr <- DESeq2_results_order %>% filter(padj < 0.01)
+
+# Testing using edgeR. First need to make the design matrix and estimate the 
+# dispersion. Fit object will be iiput into the LRT function. 
+edgeR_design <- model.matrix(~factor(bottomly_strain))
+edgeR_disp <- estimateDisp(edgeR_obj,edgeR_design)
+edgeR_glmFit <- glmFit(edgeR_disp,edgeR_design)
+edgeR_glmLRT <- glmLRT(edgeR_glmFit)
+
+# Extracting table of results. 
+edgeR_results <- edgeR_glmLRT$table
+
+# Applying Benjamini-Hochberg correction. Will need to order the results by
+# p-values, add a column for ranks, and add a column for the critical values.
+edgeR_results_order <- edgeR_results[order(edgeR_results$PValue),]
+edgeR_results_order$ranks <- seq.int(nrow(edgeR_results_order))
+edgeR_results_order$critical_value <- (edgeR_results_order$rank/
+                                         nrow(edgeR_results_order)) * 0.01
+
+# Selecting out significant genes. All p-values above the highest p-value
+# that is smaller than the critical value are also smaller than their 
+# corresponding critical values. 
+edgeR_BH_corr <- edgeR_results_order %>% filter(PValue < critical_value)
+
+
+```
+
+The adjusted p-value from the DESeq2 method is calculated using the Benjamini-Hochberg method. 
+
+# Question 2: RNA-Seq: Remove Unwanted Variation
+
+```{r, echo = F}
+
+### START QUESTION 2 CODE ###
+
+# Loading in Montgomery data set.
+data("montgomery.subset")
+
+```
+
+### Part A
+Use the Montgomery data set from HW5. For this problem, the two groups are the first five subjects and the second group are the second five subjects. Test for differential expression between the groups using a standard likelihood ratio test (**glmFit()** and **glmLRT()**). See Section 2.11.3 of the **edgeR** user's manual. How many genes have FDR adjusted p-values < 0.05? 
+
+```{r, echo = F}
+
+### START QUESTION 2 PART A CODE ##
+
+
+
+```
+
+
 
 
 
