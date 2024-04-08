@@ -13,8 +13,11 @@ library(RUVSeq)
 library(cqn)
 library(tidyverse)
 library(RColorBrewer)
+library(kableExtra)
 
 ```
+
+All analysis were performed in R version 4.3.1
 
 # Question 1: RNA-Seq: Differential Expression 
 
@@ -25,15 +28,7 @@ library(RColorBrewer)
 # Loading in data 
 load(url("https://bowtie-bio.sourceforge.net/recount/ExpressionSets/bottomly_eset.RData"))
 
-# Formatting data for R
-gsub("/","_",phenoData(bottomly.eset)$strain)
-
-phenoData(bottomly.eset)@data[,'strain']
-
-featureNames(bottomly.eset)[1:10]
 bottomly.count.table <- exprs(bottomly.eset)
-dim(bottomly.count.table)
-head(row.names(bottomly.count.table))
 
 ```
 
@@ -72,7 +67,7 @@ edgeR_obj <- DGEList(counts = bottomly_filter,group = factor(bottomly_strain))
 
 ```
 
-After creating a new data frame with genes that have at least 10 counts there are `r filter_gene_count` genes remaining. 
+The Bottomly data set was filtered so that only genes with at least 10 counts summed across all samples were kept. Objects for DESeq2 and edgeR were created for further analysis. The strain names needed to be adjusted, as the "/" symbol causes problems in R. After creating a new data frame with genes that have at least 10 counts there are `r filter_gene_count` genes remaining. 
 
 ### Part B
 Calculate the DESeq2 size factors (use **estimateSizeFactors()** and **sizeFactors()**). Calculate the edgeR size factors using the "TMM" method (use **calcNormFactors()**). What are size factors? How do the two sets of size factors compare? 
@@ -93,6 +88,8 @@ DESeq2_sf <- sizeFactors(DESeq2_sf_obj)
 edgeR_sf <- normLibSizes(edgeR_obj,method = "TMM")
 
 ```
+
+Size factors take into account how many reads are in each library. This allows for expression levels to be calculated relative to the number of sequences read for each sample. In DESeq2 the estimateSizeFactor function uses the default option 'ratio', which uses the standard median ratio method. From the help file the size factor is the median ratio o the sample over a pseudosample, where the pseudosample for each gene is the geometric mean of all samples. From the edgeR package the normLibSizes function calculates size factors using the default method of 'TMM'. This method works by using a trimmed mean of M-values between each pair of samples. The product of the original library size and the scaling factor is called the effective library size (or the normalized library size), and replaces the original library size for downstream analysis. Due to the different methods for calculation the size factors between DESeq2 and edgeR are noticeably different. For example, the first C57BL_6J sample has a size factor from DESeq2 of 0.6439291, while in edgeR this same sample has a size factor of 0.9858019. Additionally, the size factors from DESeq2 range from around 0.64 to around 1.59, while in edgeR the size factors range between around 0.97 to around 1.03. 
 
 
 ### Part C
@@ -136,10 +133,45 @@ edgeR_results_order$critical_value <- (edgeR_results_order$rank/
 # corresponding critical values. 
 edgeR_BH_corr <- edgeR_results_order %>% filter(PValue < critical_value)
 
+# Determining overlap between both methods.
+DESeq2_sig_genes <- rownames(DESeq2_BH_corr)
+edgeR_sig_genes <- rownames(edgeR_BH_corr)
+
+similar_genes <- sum(DESeq2_sig_genes %in% edgeR_sig_genes)
+
+dissimilar_genes <- setdiff(DESeq2_sig_genes,edgeR_sig_genes)
+# Will select gene ENSMUSG00000025217, which is only significant in 
+# DESeq2 and not edgeR. 
+
+DESeq2_example <- DESeq2_results_order["ENSMUSG00000025217",c(2,6)]
+edgeR_example <- edgeR_results_order["ENSMUSG00000025217",c(1,6)]
+
+colnames(DESeq2_example) <- c("Fold Change","BH p-value")
+colnames(edgeR_example) <- c("Fold Change","BH p-value")
+
+example_df <- rbind(DESeq2_example,edgeR_example) 
+
+rownames(example_df) <- c("DESeq2","edgeR")
+
+example_df <- example_df %>%
+  mutate(`BH p-value` = format.pval(`BH p-value`,digits = 4))
+
+example_table <- kbl(example_df,
+                     caption = "Example Gene ENSMUSG00000025217",
+                     booktabs = T, align = "lcc", digits = 3) %>%
+  kable_styling(latex_options = "HOLD_position")
 
 ```
 
-The adjusted p-value from the DESeq2 method is calculated using the Benjamini-Hochberg method. 
+The adjusted p-value from the DESeq2 method is calculated using the Benjamini-Hochberg method, while for edgeR the Benjamini-Hochberg adjustedment needed to be calculated manually. From DESeq2 there are `r nrow(DESeq2_BH_corr)` genes which are significant, while from edgeR there are `r nrow(edgeR_BH_corr)` genes which are significant. Between both methods there are `r similar_genes` genes that are the same. 
+
+```{r, echo = F}
+
+example_table
+
+```
+\
+Table 1 shows an example of a gene that is significant DESeq2 and not edgeR. For this gene the fold change is similar, but the adjusted p-value is significantly different. Because the Benjamini-Hochberg method is based on p-value ranks it seems that slight differences between the two methods can adjust the rank of genes even if the log change values are similar. 
 
 # Question 2: RNA-Seq: Remove Unwanted Variation
 
@@ -176,7 +208,7 @@ mgd_dgel <- estimateDisp(mgd_dgel,design = mgd_design)
 
 # Performing LRT to detect differential expression. 
 mgd_glmFit <- glmFit(mgd_dgel,mgd_design)
-mgd_glmLRT <- glmLRT(mgd_glmFit)
+mgd_glmLRT <- glmLRT(mgd_glmFit, coef = 2)
 
 # Extracting results, and selecting FDR corrected p-values below 0.05.
 mgd_results <- data.frame(topTags(mgd_glmLRT, n = Inf)) %>%
@@ -188,7 +220,7 @@ mgd_results_len <- nrow(mgd_results)
 
 ```
 
-After filtering the genes for those with an FDR corrected p-value <0.05 there are 6 genes which are differentially expressed between the two groups.  
+After filtering the genes for those with an FDR corrected p-value <0.05 there are `r mgd_results_len` genes which are differentially expressed between the two groups. Details regarding calculation can be found in the code appendix. 
 
 ### Part B
 We will use **RUVSeq** to fit **edgeR** models that adjust for unwanted variation. Following section 2.1 of the **RUVSeq** documentation, create an expression set and perform upper-quantile normalization using the **betweenLaneNormalization** function. Plot the relative log expression of the upper-quantile normalized counts and create a PCA plot colored by group. Are there any issues you note in these plots that may benefit from additional normalization? 
@@ -215,6 +247,9 @@ plotRLE(mgd_SeqSet, outline = FALSE, ylim = c(-2,2),
         col = colors[mgd_group],cex = 0.80,las = 2)
 
 ```
+\
+The relative log expression plot (RLE) shows that even after normalization there is significant differences in the variance between samples. These differences are most significant for the second group (orange). 
+
 
 ```{r, echo = F}
 
@@ -223,6 +258,8 @@ plotPCA(mgd_SeqSet, col = colors[mgd_group], cex = 0.80,
         ylim = c(-0.9,0.5), xlim = c(-0.5,1))
 
 ```
+\
+The plot above shows the PCA after normalization. Samples NA11918 and NA12006 are significantly different from the other samples, which is similar to the results from the RLE plot. Further normalization should be performed to reduce the variance in these samples. 
 
 ### Part C
 Perform RUVg using negative empirical control genes. To define a set of control genes, take the 10,000 genes with the largest likelihood ratio test p-values from part (a). Follow the steps in Section 2.2 and 2.3 of the **RUVSeq** manual, using upper-quartile normalization and k=1. Create boxplots of RLE and a PCA of the normalized counts. Comment on these plots. How many genes had FDR adjusted p-values < 0.05 after controlling for 1 factor of unwanted variation. 
@@ -240,17 +277,6 @@ mgd_control <- data.frame(topTags(mgd_glmLRT, n = Inf)) %>%
 # Performing RUVg
 mgd_RUVg <- RUVg(mgd_SeqSet,mgd_control,k = 1)
 
-# Plotting relative log expression. 
-plotRLE(mgd_RUVg,outline = FALSE, col = colors[mgd_group],
-        cex = 0.80, las = 2)
-
-```
-
-```{r, echo = F}
-
-plotPCA(mgd_RUVg,col = colors[mgd_group],cex = 0.80,
-        ylim = c(-0.8,0.6),xlim = c(-0.6,.8))
-
 ```
 
 ```{r, echo = F}
@@ -265,7 +291,7 @@ mgd_RUVg_dgel <- estimateDisp(mgd_RUVg_dgel, design = mgd_RUVg_design)
 
 # Performing LRT to detect differential expression. 
 mgd_RUVg_fit <- glmFit(mgd_RUVg_dgel,mgd_RUVg_design)
-mgd_RUVg_LRT <- glmLRT(mgd_RUVg_fit)
+mgd_RUVg_LRT <- glmLRT(mgd_RUVg_fit, coef = 2)
 
 mgd_RUVg_results <- data.frame(topTags(mgd_RUVg_LRT,n = Inf)) %>%
   filter(FDR < 0.05)
@@ -274,7 +300,25 @@ mgd_RUVg_results <- data.frame(topTags(mgd_RUVg_LRT,n = Inf)) %>%
 
 ```
 
-After controlling for 1 factor of unwanted variation there are `r nrow(mgd_RUVg_results)` genes with an FDR corrected p-value < 0.05. 
+After controlling for 1 factor of unwanted variation there are `r nrow(mgd_RUVg_results)` genes with an FDR corrected p-value < 0.05. This is much larger than the original significant number of genes, which was 6.
+
+```{r, echo = F}
+# Plotting relative log expression. 
+plotRLE(mgd_RUVg,outline = FALSE, col = colors[mgd_group],
+        cex = 0.80, las = 2)
+
+```
+\
+The above RLE plot shows the results after RVUg using negative empirical control genes was performed. The variances for NA11918 and NA12003 are much closer to the other samples compared to the original plot. 
+
+```{r, echo = F}
+
+plotPCA(mgd_RUVg,col = colors[mgd_group],cex = 0.80,
+        ylim = c(-0.8,0.6),xlim = c(-0.6,.8))
+
+```
+\
+The plot above shows the PCA plot after RVUg using negative empirical control genes was performed. Samples NA11918 and NA12006 have been brought much closer to the other samples, although NA11918 is still noticeably separate from the other samples. Additionally, NA07037 is noticeably separate from the other samples as well. 
 
 ### Part D
 Repeat part(c) above using k=2. How many genes had FDR adjusted p-values <0.05 after controlling for 2 factors of unwanted variation? 
@@ -285,18 +329,6 @@ Repeat part(c) above using k=2. How many genes had FDR adjusted p-values <0.05 a
 
 # Performing RUVg
 mgd_RUVg2 <- RUVg(mgd_SeqSet,mgd_control,k = 2)
-
-# Plotting relative log expression. 
-plotRLE(mgd_RUVg2,outline = FALSE, col = colors[mgd_group],
-        cex = 0.80, las = 2)
-
-
-```
-
-```{r, echo = F}
-
-plotPCA(mgd_RUVg2,col = colors[mgd_group],cex = 0.80,
-        ylim = c(-0.8,0.7),xlim = c(-0.8,.8))
 
 ```
 
@@ -313,7 +345,7 @@ mgd_RUVg2_dgel <- estimateDisp(mgd_RUVg2_dgel, design = mgd_RUVg2_design)
 
 # Performing LRT to detect differential expression. 
 mgd_RUVg2_fit <- glmFit(mgd_RUVg2_dgel,mgd_RUVg2_design)
-mgd_RUVg2_LRT <- glmLRT(mgd_RUVg2_fit)
+mgd_RUVg2_LRT <- glmLRT(mgd_RUVg2_fit, coef = 2)
 
 mgd_RUVg2_results <- data.frame(topTags(mgd_RUVg2_LRT,n = Inf)) %>%
   filter(FDR < 0.05)
@@ -322,10 +354,30 @@ mgd_RUVg2_results <- data.frame(topTags(mgd_RUVg2_LRT,n = Inf)) %>%
 
 ```
 
-After controlling for 1 factor of unwanted variation there are `r nrow(mgd_RUVg2_results)` genes with an FDR corrected p-value < 0.05.
+After controlling for 2 factor of unwanted variation there are `r nrow(mgd_RUVg2_results)` genes with an FDR corrected p-value < 0.05. This is reduced from Part C, which had 65 significant genes. 
+
+```{r, echo = F}
+
+# Plotting relative log expression. 
+plotRLE(mgd_RUVg2,outline = FALSE, col = colors[mgd_group],
+        cex = 0.80, las = 2)
+
+
+```
+\
+The RLE plot above shows the results after controlling for 2 factors. This plot is not significantly different from the plot in part C. 
+
+```{r, echo = F}
+
+plotPCA(mgd_RUVg2,col = colors[mgd_group],cex = 0.80,
+        ylim = c(-0.8,0.7),xlim = c(-0.8,.8))
+
+```
+\
+The PCA plot above shows the result after controlling for 2 factors of unwanted variation. This plot shows an improvement over Part D, where now the samples are much closer together. 
 
 ### PART E
-Repeat part(d) using the RUVr method with k=2, following Section 4 of the **RUVSeq** manual. How many genes had FDR adjusted p-values < 0.05 after controlling for 2 factors of unwatned variation using RUVr?
+Repeat part(d) using the RUVr method with k=2, following Section 4 of the **RUVSeq** manual. How many genes had FDR adjusted p-values < 0.05 after controlling for 2 factors of unwanted variation using RUVr?
 
 ```{r, echo = F}
 
@@ -345,19 +397,9 @@ mgd_RUVr_res <- residuals(mgd_RUVr_fit,type = "deviance")
 mgd_RUVr <- RUVr(mgd_SeqSet,rownames(counts(mgd_SeqSet)),
                  k = 2, residuals = mgd_RUVr_res)
 
-# Plotting relative log expression.
-plotRLE(mgd_RUVr,outline = FALSE, col = colors[mgd_group],
-        cex = 0.8, las = 2)
-
 ```
 
-```{r, echo = F}
 
-# Making PCA plot. 
-plotPCA(mgd_RUVr,col = colors[mgd_group],cex = 0.80,
-        ylim = c(-0.7,0.5), xlim = c(-0.4,0.6))
-
-```
 
 ```{r, echo = F}
 
@@ -371,16 +413,40 @@ mgd_RUVr2_dgel <- calcNormFactors(mgd_RUVr2_dgel,method = "upperquartile")
 mgd_RUVr2_dgel <- estimateDisp(mgd_RUVr2_dgel,mgd_RUVr2_design)
 
 mgd_RUVr2_glmFit <- glmFit(mgd_RUVr2_dgel,design = mgd_RUVr2_design)
-mgd_RUVr2_glmLRT <- glmLRT(mgd_RUVr2_glmFit)
+mgd_RUVr2_glmLRT <- glmLRT(mgd_RUVr2_glmFit, coef = 2)
 
 # Extracting results. 
-mgd_RUVr2_results <- data.frame(topTags(mgd_RUVg2_LRT,n = Inf)) %>%
+mgd_RUVr2_results <- data.frame(topTags(mgd_RUVr2_glmLRT,n = Inf)) %>%
   filter(FDR < 0.05)
 
 ```
+\
+After applying the RUVr method there are `r nrow(mgd_RUVr2_results)` genes with an FDR adjusted p-value < 0.05. This method returns the largest number of differentially expressed genes by a large margin. 
 
-After applying the RUVr method there are `r nrow(mgd_RUVr2_results)` genes with an FDR adjusted p-value < 0.05. 
+```{r, echo = F}
 
+# Plotting relative log expression.
+plotRLE(mgd_RUVr,outline = FALSE, col = colors[mgd_group],
+        cex = 0.8, las = 2)
+
+```
+\
+The RLE plot above shows the results after controlling for 2 factors of unwanted variation and applying the RUVr method. Most of the variances have been brought closer together compared to Part D, with the exception of NA12003, which shows a noticeable increase. 
+
+```{r, echo = F}
+
+# Making PCA plot. 
+plotPCA(mgd_RUVr,col = colors[mgd_group],cex = 0.80,
+        ylim = c(-0.7,0.5), xlim = c(-0.4,0.6))
+
+```
+\
+The PCA plot above shows the after controlling for 2 factors of unwanted variation and applying the RUVr method. All samples have been brought closer together compared to Part D. 
+
+### Part F
+What are your thoughts about using RUV methods on this dataset and the effect of changing k or different versions of RUV?
+
+From my limited experience the RUV methods appear to normalize data adequately compared to simply using between lane normalization methods. The ability to manually control for a different number of factors of unwanted variation (k) gives more control for normalization. However, Part D compared to Part C showed that removing additional factors of variation alone does not necessarily increase the number of differentially expressed genes identified. The RUVr (residuals) method with two unwanted factors of variation removed vastly outperformed any of the other models. I do not have sufficient experience to determine if this method is always better however, and application should still be done carefully.
 
 \newpage
 
