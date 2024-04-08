@@ -87,6 +87,8 @@ DESeq2_sf <- sizeFactors(DESeq2_sf_obj)
 # formerly known as calcNormFactors) from edgeR. "TMM" method selected. 
 edgeR_sf <- normLibSizes(edgeR_obj,method = "TMM")
 
+## FINISH QUESTION 1 PART B CODE ##
+
 ```
 
 Size factors take into account how many reads are in each library. This allows for expression levels to be calculated relative to the number of sequences read for each sample. In DESeq2 the estimateSizeFactor function uses the default option 'ratio', which uses the standard median ratio method. From the help file the size factor is the median ratio o the sample over a pseudosample, where the pseudosample for each gene is the geometric mean of all samples. From the edgeR package the normLibSizes function calculates size factors using the default method of 'TMM'. This method works by using a trimmed mean of M-values between each pair of samples. The product of the original library size and the scaling factor is called the effective library size (or the normalized library size), and replaces the original library size for downstream analysis. Due to the different methods for calculation the size factors between DESeq2 and edgeR are noticeably different. For example, the first C57BL_6J sample has a size factor from DESeq2 of 0.6439291, while in edgeR this same sample has a size factor of 0.9858019. Additionally, the size factors from DESeq2 range from around 0.64 to around 1.59, while in edgeR the size factors range between around 0.97 to around 1.03. 
@@ -168,6 +170,10 @@ The adjusted p-value from the DESeq2 method is calculated using the Benjamini-Ho
 ```{r, echo = F}
 
 example_table
+
+## FINISH QUESTION 1 PART C CODE ##
+
+### FINISH QUESTION 1 CODE ##
 
 ```
 \
@@ -257,6 +263,8 @@ The relative log expression plot (RLE) shows that even after normalization there
 plotPCA(mgd_SeqSet, col = colors[mgd_group], cex = 0.80,
         ylim = c(-0.9,0.5), xlim = c(-0.5,1))
 
+## FINISH QUESTION 2 PART B CODE ##
+
 ```
 \
 The plot above shows the PCA after normalization. Samples NA11918 and NA12006 are significantly different from the other samples, which is similar to the results from the RLE plot. Further normalization should be performed to reduce the variance in these samples. 
@@ -296,8 +304,6 @@ mgd_RUVg_LRT <- glmLRT(mgd_RUVg_fit, coef = 2)
 mgd_RUVg_results <- data.frame(topTags(mgd_RUVg_LRT,n = Inf)) %>%
   filter(FDR < 0.05)
 
-## FINISH QUESTION 2 PART C CODE ##
-
 ```
 
 After controlling for 1 factor of unwanted variation there are `r nrow(mgd_RUVg_results)` genes with an FDR corrected p-value < 0.05. This is much larger than the original significant number of genes, which was 6.
@@ -316,6 +322,8 @@ The above RLE plot shows the results after RVUg using negative empirical control
 plotPCA(mgd_RUVg,col = colors[mgd_group],cex = 0.80,
         ylim = c(-0.8,0.6),xlim = c(-0.6,.8))
 
+## FINISH QUESTION 2 PART C CODE ##
+
 ```
 \
 The plot above shows the PCA plot after RVUg using negative empirical control genes was performed. Samples NA11918 and NA12006 have been brought much closer to the other samples, although NA11918 is still noticeably separate from the other samples. Additionally, NA07037 is noticeably separate from the other samples as well. 
@@ -325,7 +333,7 @@ Repeat part(c) above using k=2. How many genes had FDR adjusted p-values <0.05 a
 
 ```{r, echo = F}
 
-## FINISH QUESTION 2 PART D CODE ##
+## START QUESTION 2 PART D CODE ##
 
 # Performing RUVg
 mgd_RUVg2 <- RUVg(mgd_SeqSet,mgd_control,k = 2)
@@ -371,6 +379,8 @@ The RLE plot above shows the results after controlling for 2 factors. This plot 
 
 plotPCA(mgd_RUVg2,col = colors[mgd_group],cex = 0.80,
         ylim = c(-0.8,0.7),xlim = c(-0.8,.8))
+
+## FINISH QUESTION 2 PART D CODE ##
 
 ```
 \
@@ -438,6 +448,10 @@ The RLE plot above shows the results after controlling for 2 factors of unwanted
 # Making PCA plot. 
 plotPCA(mgd_RUVr,col = colors[mgd_group],cex = 0.80,
         ylim = c(-0.7,0.5), xlim = c(-0.4,0.6))
+
+## FINISH QUESTION 2 PART E CODE ##
+
+### FINISH QUESTION 2 CODE ###
 
 ```
 \
