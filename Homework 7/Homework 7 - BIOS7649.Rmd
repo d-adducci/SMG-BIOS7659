@@ -1,0 +1,17 @@
+---
+title: "Homework 7 - BIOS 7649"
+author: "Dominic Adducci"
+output: pdf_document
+---
+
+```{r, echo = F, include = F}
+
+library(tidyverse)
+library(shinyMethyl)
+library(minfi)
+library(bumphunter)
+library(IlluminaHumanMethylation450kmanifest)
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+
+```
+
