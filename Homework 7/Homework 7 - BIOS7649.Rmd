@@ -12,6 +12,165 @@ library(minfi)
 library(bumphunter)
 library(IlluminaHumanMethylation450kmanifest)
 library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+library(kableExtra)
 
 ```
+
+# Question 1: DNA Methylation QC and Normalization (Illumina 450K)
+
+```{r, echo = F}
+
+### START QUESTION 1 CODE ###
+
+# Loading in data
+baseDir <- c("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024/SMG-BIOS7659/Homework 7/")
+targets <- read.metharray.sheet(baseDir)
+rgSet <- read.metharray.exp(targets = targets)
+annotation(rgSet)
+
+```
+
+### Part A
+In clinical manuscripts, the first table often includes summaries of clinical and demographic data (e.g., disease status, race, age, etc.). Create a table with this information (means, standard deviations, etc.), using **pData(rgSet)** to extract relevant information. How many unique subjects are there? 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART A CODE ##
+
+# Extracting demographic data.
+demographic_data <- data.frame(pData(rgSet))
+
+age_mean <- mean(demographic_data$patient.age_at_initial_pathologic_diagnosis)
+age_sd <- sd(demographic_data$patient.age_at_initial_pathologic_diagnosis)
+
+height_mean <- mean(demographic_data$patient.height)
+height_sd <- sd(demographic_data$patient.height)
+
+weight_mean <- mean(demographic_data$patient.weight)
+weight_sd <- sd(demographic_data$patient.weight)
+
+status_cancer <- nrow(demographic_data[demographic_data$Status == "cancer",])
+status_normal <- nrow(demographic_data[demographic_data$Status == "normal",])
+
+sex_male <- nrow(demographic_data[demographic_data$Sex == "MALE",])
+sex_female <- nrow(demographic_data[demographic_data$Sex == "FEMALE",])
+
+age_table <- paste(round(age_mean,2),"(",round(age_sd,2),")",sep = "")
+height_table <- paste(round(height_mean,2),"(",round(height_sd,2),")",sep= "")
+weight_table <- paste(round(weight_mean,2),"(",round(weight_sd,2),")",sep="")
+
+demographic_table <- rbind(age_table,height_table,weight_table,status_cancer,
+                           status_normal,sex_male,sex_female)
+
+
+rownames(demographic_table) <- c("Age(mean,sd)","Height(mean,sd)",
+                                 "Weight(mean,sd)","With Cancer",
+                                 "Without Cancer","Male","Female")
+
+table_1 <- kbl(demographic_table,
+               caption = "Demographic Data",
+               booktabs = T, align = "c") %>%
+  kable_styling(latex_options = "HOLD_position") %>%
+  group_rows("Patient Status (n = 3)",4,5) %>%
+  group_rows("Patient Sex (n = 3)",6,7)
+
+table_1
+
+## FINISH QUESTION 1 PART A CODE ##
+
+
+```
+
+### Part B
+From the array annotation information given by **getManifest(rgSet)**, how many Type I and II probes are there? What is the difference between Type I vs II probes? 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART B CODE ##
+
+# Determining the number of type 1 and 2 probes. 
+probe_info <- getManifest(rgSet)
+
+
+
+```
+There are 135,476 Type I probes and 350,036 Type II probes. 
+
+
+### Part C
+Use **densityPlot()** and **densityBeanPlot()** to display QC plots. In the information from the "targets" file, use "id" for **sampNames** and repeat the QC plots on "sample_type" and "Sex" for **sampGroups** to see if there are differences in cancer versus normal subjects or by sex. Do you see any differences in the beta values between sample type and sex using the QC reports? Are there any samples that appear to be problematic? 
+
+```{r, echo = F, warning = F}
+
+## START QUESTION 1 PART C CODE ##
+
+par(mfrow = c(1,2))
+
+densityPlot(rgSet,sampGroups = pData(rgSet)$sample_type,main = "Sample Type")
+densityBeanPlot(rgSet,sampGroups = pData(rgSet)$sample_type,
+                sampNames = targets$id,main = "Sample Type - Beta")
+
+```
+
+```{r, echo = F, warning = F}
+
+par(mfrow = c(1,2))
+
+densityPlot(rgSet,sampGroups = pData(rgSet)$Sex,main = "Sex")
+densityBeanPlot(rgSet,sampGroups = pData(rgSet)$Sex,sampNames = targets$id,
+                main = "Sex - Beta")
+
+## FINISH QUESTION 1 PART C CODE ##
+
+```
+
+### Part D
+Describe their purpose of the different control probes on the array (see link above and **help(qcReport)**). Use **controlStripPlot()** to display the intensity values for the "BISULFITE CONVERSION I" and "NEGATIVE" probes. What do the ranges of these intensity values tell us about the quality of the data? 
+
+```{r, echo = F, warning = F}
+
+## START QUESTION 1 PART D CODE ##
+
+controlStripPlot(rgSet,controls = "BISULFITE CONVERSION I",
+                 sampNames = pData(rgSet)$sample_type)
+
+controlStripPlot(rgSet,controls = "BISULFITE CONVERSION I")
+
+```
+
+
+```{r, echo = F, warning = F}
+
+controlStripPlot(rgSet,controls = "NEGATIVE",
+                 sampNames = pData(rgSet)$sample_type)
+
+controlStripPlot(rgSet,controls = "NEGATIVE")
+
+## FINISH QUESTION 1 PART D CODE ##
+
+```
+
+### Part E
+Illumina also reports detection p-values, how are these calculated? Using the function **detectionP()**, which sample had the largest percentage of detection p-values $\geq$ 0.05? How many probes have average detection p-value $\geq$ across the 6 samples? 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART E CODE ##
+
+# Calculating p-values.
+pvalues <- data.frame(detectionP(rgSet))
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
 
