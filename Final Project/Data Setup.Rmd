@@ -1,0 +1,41 @@
+---
+title: "Final Project Data"
+author: "Dominic Adducci"
+date: "2024-04-08"
+output: pdf_document
+---
+
+```{r, echo = F, include = F}
+
+library(GEOquery)
+library(tidyverse)
+
+```
+
+```{r, echo = F,include=FALSE}
+
+# Downloading supplementary data for GSE225313. Commenting out the code
+# because I only need to do this once. 
+ getGEOSuppFiles('GSE225313') 
+
+# Bringing data into R
+GSE225313 <- getGEO(GEO = 'GSE225313')
+
+# Extracting metadata 
+meta_data <- pData(phenoData(GSE225313[[1]]))
+
+# Extracting IDAT files by untaring the files. 
+untar(tarfile = 'GSE225313/GSE225313_RAW.tar')
+
+```
+
+```{r, echo = F}
+
+idat_files <- list.files(pattern = "idat.gz")
+for(i in 1:length(idat_files)){
+  gunzip(filename = idat_files[i], destname = gsub("[.]gz$","",idat_files[i]))
+}
+
+```
+
+
