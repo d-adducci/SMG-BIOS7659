@@ -13,6 +13,7 @@ library(bumphunter)
 library(IlluminaHumanMethylation450kmanifest)
 library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
 library(kableExtra)
+library(latex2exp)
 
 ```
 
@@ -27,6 +28,10 @@ baseDir <- c("C:/Users/domin/Documents/Biostatistics Masters Program/Spring 2024
 targets <- read.metharray.sheet(baseDir)
 rgSet <- read.metharray.exp(targets = targets)
 annotation(rgSet)
+
+# Saving methylation signals for raw data and the SWAN normalization method. 
+mset <- preprocessRaw(rgSet)
+msetSWAN <- preprocessSWAN(rgSet)
 
 ```
 
@@ -151,7 +156,7 @@ controlStripPlot(rgSet,controls = "NEGATIVE")
 ```
 
 ### Part E
-Illumina also reports detection p-values, how are these calculated? Using the function **detectionP()**, which sample had the largest percentage of detection p-values $\geq$ 0.05? How many probes have average detection p-value $\geq$ across the 6 samples? 
+Illumina also reports detection p-values, how are these calculated? Using the function **detectionP()**, which sample had the largest percentage of detection p-values $\geq$ 0.05? How many probes have average detection p-value $\geq$ 0.05 across the 6 samples? 
 
 ```{r, echo = F}
 
@@ -160,9 +165,252 @@ Illumina also reports detection p-values, how are these calculated? Using the fu
 # Calculating p-values.
 pvalues <- data.frame(detectionP(rgSet))
 
+# Summing up p-values >0 0.05 for each sample. 
+failed_samples <- data.frame(colSums(pvalues>0.05))
+colnames(failed_samples) <- "Sum of p-values >= 0.05"
+rownames(failed_samples) <- c("5775041065-R01C02","5775041065-R04C01",
+                      "5775041068-R01C02","5775041068-R04C01",
+                      "5775041068-R06C01","5775041084-R01C01")
+failed_samples <- rownames_to_column(failed_samples,"Sample")
+
+failed_samples_table <- kbl(failed_samples,
+                      caption = "P-Values >= to 0.05",
+                      booktabs = T, align = "lc",escape = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+failed_samples_table
+
+```
+
+```{r, echo = F}
+
+# Determining how many probes have average detection p-values >= 0.05
+# across the 6 samples. 
+
+failed_rows <- data.frame(rowMeans(pvalues)) %>%
+  mutate(rowMeans.pvalues. = rowMeans.pvalues. > 0.05 ) %>%
+  colSums()
+
+## FINISH QUESTION 1 PART E CODE ##
+
+```
+
+There are `r failed_rows` probes that have an average detection p-value $\geq$ 0.05 across the 6 samples. 
+
+
+### Part F
+Use multidimensional scaling (MDS) plots to show how samples group by sex or cancer status with  **mdsPlot()**. What do you conclude? Are conclusions different if you take more positions with the most methylation variability (1000, vs 10000 positions)? Or by using the raw data **mset** compared to the SWAN normalized data **msetSWAN**. 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART F CODE ##
+
+# Plotting using mset data.
+
+par(mfrow = c(1,2))
+
+# Sample group by sex for mset data. 
+mdsPlot(mset,sampNames = mset$id,sampGroups = mset$Sex, ylim = c(-13,8),
+        main = "Beta MDS mset\n 1000 most variable \n positions by sex")
+
+
+# Sample group by cancer status for mset data.
+mdsPlot(mset,sampNames = mset$id,sampGroups = mset$sample_type, ylim = c(-13,8),
+        legendNCol = 1,
+        main = "Beta MDS mset\n 1000 most variable \n positions by sample type")
+
+```
+
+```{r, echo = F}
+
+par(mfrow = c(1,2))
+
+# Sample group by sex for msetSWAN data.
+mdsPlot(msetSWAN,sampNames = msetSWAN$id,
+        sampGroups = msetSWAN$Sex, ylim = c(-13,8),
+        main = "Beta MDS msetSWAN\n 1000 most variable \n positions by sex")
+
+# Sample group by cancer status for msetSWAN data.
+mdsPlot(msetSWAN,sampNames = msetSWAN$id,sampGroups = msetSWAN$sample_type, 
+        ylim = c(-13,8),legendNCol = 1,
+        main = "Beta MDS msetSWAN\n 1000 most variable \n positions by sample type")
+
+## FINISH QUESTION 1 PART G CODE ##
+
+```
+
+### Part G
+Plot the distribution of beta values before and after SWAN normalization using **plotBetasByType()**. What do you see in the density plots? 
+
+```{r, echo = F}
+
+## START QUESTION 1 PART G CODE ##
+
+par(mfrow = c(1,2))
+
+# Plotting Betas comparing before an after normalization for sample 1
+plotBetasByType(mset[,1],main = "5775041065-R01C02 mset",cex.legend = 0.8)
+plotBetasByType(msetSWAN[,1],main = "5775041065-R01C02 msetSWAN",
+                cex.legend = 0.80)
+
+```
+
+```{r, echo = F}
+
+par(mfrow = c(1,2))
+
+# Plotting Betas comparing before an after normalization for sample 2
+plotBetasByType(mset[,2],main = "5775041065-R04C01 mset",cex.legend = 0.8)
+plotBetasByType(msetSWAN[,2],main = "5775041065-R04C01 msetSWAN",
+                cex.legend = 0.80)
+
+```
+
+```{r, echo = F}
+
+par(mfrow = c(1,2))
+
+# Plotting Betas comparing before an after normalization for sample 3
+plotBetasByType(mset[,3],main = "5775041068-R01C02 mset",cex.legend = 0.8)
+plotBetasByType(msetSWAN[,3],main = "5775041068-R01C02 msetSWAN",
+                cex.legend = 0.80)
+
+```
+
+```{r, echo = F}
+
+par(mfrow = c(1,2))
+
+# Plotting Betas comparing before an after normalization for sample 4
+plotBetasByType(mset[,4],main = "5775041068-R04C01 mset",cex.legend = 0.8)
+plotBetasByType(msetSWAN[,4],main = "5775041068-R04C01 msetSWAN",
+                cex.legend = 0.80)
+
+```
+
+```{r, echo = F}
+
+par(mfrow = c(1,2))
+
+# Plotting Betas comparing before an after normalization for sample 5
+plotBetasByType(mset[,5],main = "5775041068-R06C01 mset",cex.legend = 0.8)
+plotBetasByType(msetSWAN[,5],main = "5775041068-R06C01 msetSWAN",
+                cex.legend = 0.80)
+
+```
+
+```{r, echo = F}
+
+par(mfrow = c(1,2))
+
+# Plotting Betas comparing before an after normalization for sample 6
+plotBetasByType(mset[,6],main = "5775041084-R01C01 mset",cex.legend = 0.8)
+plotBetasByType(msetSWAN[,6],main = "5775041084-R01C01 msetSWAN",
+                cex.legend = 0.80)
+
+## FINISH QUESTION 1 PART G CODE ##
+
+### FINISH QUESTION 1 CODE ###
+
+```
+
+
+# Question 2: DNA Methylation Annotation and Differentially Methlyated Positions (Illumina 450K)
+
+```{r, echo = F}
+
+### START QUESTION 2 CODE ###
+
+# Setting up data.
+gset <- mapToGenome(msetSWAN)
+annotation <- data.frame(getAnnotation(gset))
+
+```
+
+### Part A
+What are CpG islands, shores, shelves and open seas? From **annotation()** how many CpG site probes are in each of these types? 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART A CODE ##
+
+# Finding number of CpG islands.
+cpg_island_number <- nrow(annotation[
+  annotation$Relation_to_Island == "Island",])
+
+# Finding number of CpG upstream shores.
+cpg_up_shores_number <- nrow(annotation[
+  annotation$Relation_to_Island == "N_Shore",])
+
+# Finding number of CpG downstream shores. 
+cpg_down_shores_number <- nrow(annotation[
+  annotation$Relation_to_Island == "S_Shore",])
+
+# Finding number of upstream CpG shelves.
+cpg_up_shelves <- nrow(annotation[
+  annotation$Relation_to_Island == "N_Shelf",])
+
+# Finding number of downstream CpG shelves.
+cpg_down_shelves <- nrow(annotation[
+  annotation$Relation_to_Island == "S_Shelf",])
+
+# Finding number of CpG open sea sites.
+cpg_opensea <- nrow(annotation[annotation$Relation_to_Island == "OpenSea",])
+
+cpg_site_df <- rbind(cpg_island_number,cpg_up_shores_number,
+                     cpg_down_shores_number,cpg_up_shelves,
+                     cpg_down_shelves,cpg_opensea)
+
+rownames(cpg_site_df) <- c("CpG Islands","CpG Upstream Shores",
+                           "CpG Downstream Shores","CpG Upstream Shelves",
+                           "CpG Downstream Shelves","CpG Open Sea") 
+
+cpg_site_df <- cpg_site_df %>% data.frame() %>% rownames_to_column()
+
+colnames(cpg_site_df) <- c("CpG Site","Number of Probes")
+
+cpg_site_table <- kbl(cpg_site_df,
+                      caption = "Number of CpG Probes by Site",
+                      booktabs = T, align = "lc") %>%
+  kable_styling(latex_options = "HOLD_position")
+
+cpg_site_table
+
+## FINISH QUESTION 2 PART A CODE ##
+
+```
+
+
+### Part B
+Using the SWAN normalized data from problem #1 **msetSWAN**, find differentially methylated positions (DMP) for cancer status with **getM()**, followed by **dmpFinder()** (which currently does not handle paired samples, so you will need to run it assuming independence). Are there any DMPs with q-value $\leq$ 0.10? Using a p-value cutoff of $10^{-5}$, how many DMPs show hyper or hypomethylation due to cancer status? Use **plotCpg()** to plot the beta values and then M-values for the top four DMPs. What do trends and effect sizes do you see in the plots? 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART B CODE ##
+
+# Getting the  and identifying differentially methylated regions.
+M <- getM(msetSWAN)
+DMR <- data.frame(dmpFinder(M,pheno = pData(msetSWAN)$sample_type))
+
+# Determining if there are any q-values <= 0.10. 
+q_value_number <- nrow(DMR[DMR$qval <= 0.10,])
+
+# Determining number of hyper and hypomethylation positions due to cancer status
+# for a p-value cutoff of 10e-5.
+p_value_number <- DMR[DMR$pval < 10e-5,]
+
+hypo <- nrow(p_value_number[p_value_number$intercept < 0,])
+hyper <- nrow(p_value_number[p_value_number$intercept > 0,])
+
+# Sorting for most significant p-values and selecting top four. 
+p_value_sig <- head(p_value_number[order(p_value_number$pval),],4)
+
+
 
 
 ```
+
+There are `r q_value_number` differentially methylated positions with q-value $\leq$ 0.10. There are `r nrow(p_value_number)` differentially methylated positions between cancer and non-cancer samples. Of these `r nrow(p_value_number)`, `r hypo` are hypomethylated and `r hyper` are hypermethylated. 
 
 
 
