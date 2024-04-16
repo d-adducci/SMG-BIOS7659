@@ -399,6 +399,7 @@ q_value_number_cancer <- nrow(DMR_cancer[DMR_cancer$qval <= 0.10,])
 # Determining number of hyper and hypomethylation positions due to cancer status
 # for a p-value cutoff of 10e-5.
 p_value_number_cancer <- DMR_cancer[DMR_cancer$pval < 10e-5,]
+number_p_cancer <- nrow(p_value_number_cancer)
 
 hypo_cancer <- nrow(p_value_number_cancer[p_value_number_cancer$intercept < 0,])
 hyper_cancer <- nrow(p_value_number_cancer[
@@ -413,7 +414,7 @@ mset_cancer <- M_cancer[c("cg08880423","cg14488592","cg00156072","cg12298140"),]
 
 ```
 
-There are `r q_value_number_cancer` differentially methylated positions with q-values $\leq$ 0.10. There are `r nrow(p_value_number_cancer)` differentially methylated positions between cancer and non-cancer samples. Of these `r nrow(p_value_number_cancer)`, `r hypo` are hypomethylated and `r hyper` are hypermethylated. 
+There are `r q_value_number_cancer` differentially methylated positions with q-values $\leq$ 0.10. There are `r number_p_cancer` differentially methylated positions between cancer and non-cancer samples. Of these `r number_p_cancer`, `r hypo_cancer` are hypomethylated and `r hyper_cancer` are hypermethylated. 
 
 ```{r, echo = F,fig.width = 3,fig.height = 3}
 
@@ -459,6 +460,7 @@ q_value_number_sex <- nrow(DMR_sex[DMR_sex$qval <= 0.10,])
 # Determining number of hyper and hypomethylation positions due to sex
 # for a p-value cutoff of 10e-5.
 p_value_number_sex <- DMR_sex[DMR_sex$pval < 10e-5,]
+number_p_sex <- nrow(p_value_number_sex)
 
 hypo_sex <- nrow(p_value_number_sex[p_value_number_sex$intercept < 0,])
 hyper_sex <- nrow(p_value_number_sex[
@@ -473,7 +475,7 @@ mset_sex <- M_sex[c("cg10013343","cg15479068","cg17220960","cg11403874"),]
 
 ```
 
-There are `r q_value_number_sex` differentially methylated positions with q-values $\leq$ 0.10. There are `r nrow(p_value_number_sex)` differentially methylated positions between males and females. Of these `r r nrow(p_value_number_cancer)`, `r hypo_sex` are hypomethylated and `r hyper_sex` are hypermethylated. 
+There are `r q_value_number_sex` differentially methylated positions with q-values $\leq$ 0.10. There are `r number_p_sex` differentially methylated positions between males and females. Of these `r number_p_sex`, `r hypo_sex` are hypomethylated and `r hyper_sex` are hypermethylated. 
 
 ```{r, echo = F,fig.width = 3,fig.height = 3}
 
@@ -570,10 +572,29 @@ plotCpg(mset_sex2,cpg = c("cg10013343","cg15479068",
 
 
 ### Part E
-This samples data is too small for **bumphunter** to identify significant regions by performing permutations or bootstrap. However, we can use the **getSegment()** function to find region of extreme values for the differences found in part b) and uset he following code to plot one examples region. Note, this is just an example. Report on, and provide a plot for a region that shows hypomethylation in more than one CpG site for teh cancer subjects. 
+This samples data is too small for **bumphunter** to identify significant regions by performing permutations or bootstrap. However, we can use the **getSegment()** function to find region of extreme values for the differences found in part b) and use the following code to plot one examples region. Note, this is just an example. Report on, and provide a plot for a region that shows hypomethylation in more than one CpG site for the cancer subjects. 
 
+```{r, echo = F}
 
+## START QUESTION 2 PART E CODE ##
 
+diffs <- DMR_cancer$intercept
+chr <- annotation$chr
+pos <- annotation$pos
+cl <- clusterMaker(chr,pos,maxGap = 300) # cluster probes. 
+
+# Find regions with a stretch of differences.
+segs <- getSegments(diffs, f= cl, cutoff = 6)
+
+# To plot the first region identified. 
+j = 1
+ind = segs$dnIndex[[j]]
+index <- which(cl == cl[ind])
+plot(pos[index],diffs[index],xlab = paste("position on", chr[ind]),
+     ylab = "diff")
+abline(h = 0, col = "blue")
+
+```
 
 
 
