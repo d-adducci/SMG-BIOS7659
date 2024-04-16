@@ -389,30 +389,188 @@ Using the SWAN normalized data from problem #1 **msetSWAN**, find differentially
 ## START QUESTION 2 PART B CODE ##
 
 # Getting the  and identifying differentially methylated regions.
-M <- getM(msetSWAN)
-DMR <- data.frame(dmpFinder(M,pheno = pData(msetSWAN)$sample_type))
+M_cancer <- getM(gset)
+DMR_cancer <- data.frame(dmpFinder(M_cancer,
+                                   pheno = pData(gset)$sample_type))
 
 # Determining if there are any q-values <= 0.10. 
-q_value_number <- nrow(DMR[DMR$qval <= 0.10,])
+q_value_number_cancer <- nrow(DMR_cancer[DMR_cancer$qval <= 0.10,])
 
 # Determining number of hyper and hypomethylation positions due to cancer status
 # for a p-value cutoff of 10e-5.
-p_value_number <- DMR[DMR$pval < 10e-5,]
+p_value_number_cancer <- DMR_cancer[DMR_cancer$pval < 10e-5,]
 
-hypo <- nrow(p_value_number[p_value_number$intercept < 0,])
-hyper <- nrow(p_value_number[p_value_number$intercept > 0,])
+hypo_cancer <- nrow(p_value_number_cancer[p_value_number_cancer$intercept < 0,])
+hyper_cancer <- nrow(p_value_number_cancer[
+  p_value_number_cancer$intercept > 0,])
 
 # Sorting for most significant p-values and selecting top four. 
-p_value_sig <- head(p_value_number[order(p_value_number$pval),],4)
+p_value_sig_cancer <- head(p_value_number_cancer[order(
+  p_value_number_cancer$pval),],4)
 
+# Selecting top 4 p-values from M
+mset_cancer <- M_cancer[c("cg08880423","cg14488592","cg00156072","cg12298140"),]
 
+```
+
+There are `r q_value_number_cancer` differentially methylated positions with q-values $\leq$ 0.10. There are `r nrow(p_value_number_cancer)` differentially methylated positions between cancer and non-cancer samples. Of these `r nrow(p_value_number_cancer)`, `r hypo` are hypomethylated and `r hyper` are hypermethylated. 
+
+```{r, echo = F,fig.width = 3,fig.height = 3}
+
+par(mfrow = c(1,2))
+
+# Plotting beta values for cancer groups. 
+plotCpg(mset_cancer,cpg = c("cg08880423","cg14488592",
+                            "cg00156072","cg12298140"),
+        pheno = pData(gset)$sample_type, measure = "beta",
+        type = "categorical", ylab = "Beta Measure",xlab = "Sample Type")
 
 
 ```
 
-There are `r q_value_number` differentially methylated positions with q-value $\leq$ 0.10. There are `r nrow(p_value_number)` differentially methylated positions between cancer and non-cancer samples. Of these `r nrow(p_value_number)`, `r hypo` are hypomethylated and `r hyper` are hypermethylated. 
+```{r, echo = F, fig.width = 3, fig.height = 3}
+
+par(mfrow = c(1,2))
+
+# Plotting M values for cancer groups. 
+plotCpg(mset_cancer,cpg = c("cg08880423","cg14488592",
+                            "cg00156072","cg12298140"),
+        pheno = pData(gset)$sample_type, measure = "M",
+        type = "categorical", ylab = "M Measure",xlab = "Sample Type")
+
+## FINISH QUESTION 2 PART B CODE ##
+```
+
+### Part C
+Repeat part b) but for DMPs between male and females. 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART C CODE ##
+
+# Getting the  and identifying differentially methylated regions.
+M_sex <- getM(gset)
+DMR_sex <- data.frame(dmpFinder(M_sex,
+                                   pheno = pData(gset)$Sex))
+
+# Determining if there are any q-values <= 0.10. 
+q_value_number_sex <- nrow(DMR_sex[DMR_sex$qval <= 0.10,])
+
+# Determining number of hyper and hypomethylation positions due to sex
+# for a p-value cutoff of 10e-5.
+p_value_number_sex <- DMR_sex[DMR_sex$pval < 10e-5,]
+
+hypo_sex <- nrow(p_value_number_sex[p_value_number_sex$intercept < 0,])
+hyper_sex <- nrow(p_value_number_sex[
+  p_value_number_sex$intercept > 0,])
+
+# Sorting for most significant p-values and selecting top four. 
+p_value_sig_sex <- head(p_value_number_sex[order(
+  p_value_number_sex$pval),],4)
+
+# Selecting top 4 p-values from M
+mset_sex <- M_sex[c("cg10013343","cg15479068","cg17220960","cg11403874"),]
+
+```
+
+There are `r q_value_number_sex` differentially methylated positions with q-values $\leq$ 0.10. There are `r nrow(p_value_number_sex)` differentially methylated positions between males and females. Of these `r r nrow(p_value_number_cancer)`, `r hypo_sex` are hypomethylated and `r hyper_sex` are hypermethylated. 
+
+```{r, echo = F,fig.width = 3,fig.height = 3}
+
+par(mfrow = c(1,2))
+
+# Plotting beta values for males and females. 
+plotCpg(mset_sex,cpg = c("cg10013343","cg15479068",
+                            "cg17220960","cg11403874"),
+        pheno = pData(gset)$Sex, measure = "beta",
+        type = "categorical", ylab = "Beta Measure", xlab = "Sex")
 
 
+```
+
+```{r, echo = F, fig.width = 3, fig.height = 3}
+
+par(mfrow = c(1,2))
+
+# Plotting M values for cancer groups. 
+plotCpg(mset_sex,cpg = c("cg10013343","cg15479068",
+                            "cg17220960","cg11403874"),
+        pheno = pData(gset)$Sex, measure = "M",
+        type = "categorical", ylab = "M Measure",xlab = "Sex")
+
+## FINISH QUESTION 2 PART C CODE ##
+```
+
+### Part D
+Global methylation profiles vary by sex. There is a function **addSex()** to estimate whether each samples is male or female. Are the predicted and given labels correct for Sex? If not, revisit the MDS plot from part 1e)? Do the new predictions group in the plot? Also repeat the analysis in 2c). Now are there DMPs with q-value $\leq$ 0.10 (or p-value $\leq$ $10^{-5}$)? 
+
+```{r, echo = F}
+
+## START QUESTION 2 PART D CODE ##
+
+gset_sex <- addSex(gset)
+results_gset_sex <- cbind(pData(gset_sex)$predictedSex, pData(gset_sex)$Sex)
+
+```
+
+```{r, echo = F}
+
+# Repeating part C with the new data. 
+# Getting the  and identifying differentially methylated regions.
+M_sex2 <- getM(gset_sex)
+DMR_sex2 <- data.frame(dmpFinder(M_sex2,
+                                   pheno = pData(gset_sex)$Sex))
+
+# Determining if there are any q-values <= 0.10. 
+q_value_number_sex2 <- nrow(DMR_sex2[DMR_sex2$qval <= 0.10,])
+
+# Determining number of hyper and hypomethylation positions due to sex
+# for a p-value cutoff of 10e-5.
+p_value_number_sex2 <- DMR_sex2[DMR_sex2$pval < 10e-5,]
+
+hypo_sex2 <- nrow(p_value_number_sex2[p_value_number_sex2$intercept < 0,])
+hyper_sex2 <- nrow(p_value_number_sex2[
+  p_value_number_sex$intercept > 0,])
+
+# Sorting for most significant p-values and selecting top four. 
+p_value_sig_sex2 <- head(p_value_number_sex2[order(
+  p_value_number_sex2$pval),],4)
+
+# Selecting top 4 p-values from M
+mset_sex2 <- M_sex2[c("cg10013343","cg15479068","cg17220960","cg11403874"),]
+
+```
+
+
+```{r, echo = F,fig.width = 3,fig.height = 3}
+
+par(mfrow = c(1,2))
+
+# Plotting beta values for males and females. 
+plotCpg(mset_sex2,cpg = c("cg10013343","cg15479068",
+                            "cg17220960","cg11403874"),
+        pheno = pData(gset_sex)$Sex, measure = "beta",
+        type = "categorical", ylab = "Beta Measure", xlab = "Sex")
+
+
+```
+
+```{r, echo = F, fig.width = 3, fig.height = 3}
+
+par(mfrow = c(1,2))
+
+# Plotting M values for cancer groups. 
+plotCpg(mset_sex2,cpg = c("cg10013343","cg15479068",
+                            "cg17220960","cg11403874"),
+        pheno = pData(gset_sex)$Sex, measure = "M",
+        type = "categorical", ylab = "M Measure",xlab = "Sex")
+
+## FINISH QUESTION 2 PART D CODE ##
+```
+
+
+### Part E
+This samples data is too small for **bumphunter** to identify significant regions by performing permutations or bootstrap. However, we can use the **getSegment()** function to find region of extreme values for the differences found in part b) and uset he following code to plot one examples region. Note, this is just an example. Report on, and provide a plot for a region that shows hypomethylation in more than one CpG site for teh cancer subjects. 
 
 
 
